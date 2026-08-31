@@ -1,6 +1,7 @@
 import { QuestionConfig } from "@/types/schema";
 
-export const SECTION_A_QUESTIONS: QuestionConfig[] = [
+export const ALL_QUESTIONS: QuestionConfig[] = [
+  // Section A - Personal & Family Hair Loss History
   {
     id: "q1",
     n: 1,
@@ -64,9 +65,285 @@ export const SECTION_A_QUESTIONS: QuestionConfig[] = [
       { label: "Sudden excessive shedding", value: "Sudden excessive shedding", emoji: "⚡" },
     ],
   },
+
+  // Section B - Hormonal & Health Influences
+  {
+    id: "q5",
+    n: 5,
+    key: "diagnosed_conditions",
+    sectionId: "B",
+    sectionTitle: "Hormonal & Health Influences",
+    type: "multi",
+    prompt: "Certain health conditions directly influence hair density. Have you been diagnosed with any of these?",
+    helperText: "Select all that apply, or tap 'None'.",
+    options: [
+      { label: "PCOS / PCOD", value: "PCOS/PCOD" },
+      { label: "Thyroid disorder", value: "Thyroid disorder" },
+      { label: "Diabetes", value: "Diabetes" },
+      { label: "Autoimmune disease", value: "Autoimmune disease" },
+      { label: "Anemia / Iron deficiency", value: "Anemia" },
+      { label: "None of these", value: "None", isExclusive: true },
+    ],
+  },
+  {
+    id: "q6_q7_hormonal",
+    n: 6,
+    key: "unified_hormonal",
+    sectionId: "B",
+    sectionTitle: "Hormonal & Health Influences",
+    type: "hormonal",
+    prompt: "Hormonal shifts are one of the most common catalysts for hair changes. Do any of these apply?",
+    helperText: "Select what best matches your current life phase.",
+    options: [
+      { label: "Regular periods", value: "Regular periods", description: "Consistent menstrual cycle" },
+      { label: "Irregular / missed periods", value: "Irregular", description: "PCOS or fluctuating cycles" },
+      { label: "Currently pregnant", value: "Currently pregnant", description: "Hormonal estrogen peak" },
+      { label: "Postpartum (< 1 year)", value: "Postpartum <1 year", description: "Post-delivery shedding phase" },
+      { label: "Menopause / Peri-menopause", value: "Menopausal", description: "Estrogen / progesterone shift" },
+      { label: "Not applicable", value: "Not applicable", description: "Not relevant to my biological profile", isExclusive: true },
+    ],
+  },
+  {
+    id: "q8_q9_skin",
+    n: 8,
+    key: "skin_body_markers",
+    sectionId: "B",
+    sectionTitle: "Hormonal & Health Influences",
+    type: "combined_yesno",
+    prompt: "Two quick questions on skin and body markers:",
+    helperText: "These physical markers help your doctor assess androgen and sebum activity.",
+  },
+
+  // Section C - Lifestyle & Environmental Triggers
+  {
+    id: "q11_smoking",
+    n: 11,
+    key: "smoking",
+    sectionId: "C",
+    sectionTitle: "Lifestyle & Environmental Triggers",
+    type: "single",
+    prompt: "Do you smoke tobacco or vape regularly?",
+    helperText: "Nicotine directly constricts micro-capillaries supplying hair follicles.",
+    options: [
+      { label: "No (non-smoker)", value: "No" },
+      { label: "Light (< 5 / day)", value: "Mild <5/day" },
+      { label: "Moderate (5–10 / day)", value: "Moderate 5-10/day" },
+      { label: "Heavy (> 10 / day)", value: "Severe >10/day" },
+    ],
+  },
+  {
+    id: "q11_alcohol",
+    n: 11,
+    key: "alcohol",
+    sectionId: "C",
+    sectionTitle: "Lifestyle & Environmental Triggers",
+    type: "yesno",
+    prompt: "Do you consume alcohol?",
+    helperText: "Alcohol frequency helps understand hydration and liver metabolism.",
+    options: [
+      { label: "No", value: "false" },
+      { label: "Yes", value: "true" },
+    ],
+  },
+  {
+    id: "q11_hard_water",
+    n: 11,
+    key: "hard_water",
+    sectionId: "C",
+    sectionTitle: "Lifestyle & Environmental Triggers",
+    type: "yesno",
+    prompt: "What kind of water do you use for washing your hair?",
+    helperText: "Hard municipal/borewell water creates mineral deposits on the hair shaft.",
+    options: [
+      { label: "Normal / Filtered / RO", value: "false" },
+      { label: "Hard water / Borewell", value: "true" },
+    ],
+  },
+  {
+    id: "q11_hair_wash_frequency",
+    n: 11,
+    key: "hair_wash_frequency",
+    sectionId: "C",
+    sectionTitle: "Lifestyle & Environmental Triggers",
+    type: "single",
+    prompt: "How often do you wash your hair?",
+    helperText: "Washing cadence indicates scalp biome balance.",
+    options: [
+      { label: "Daily", value: "Daily" },
+      { label: "Alternate Days", value: "Alternate Days" },
+      { label: "Weekly (1-2 times)", value: "Weekly" },
+    ],
+  },
+  {
+    id: "q11_heating_tools",
+    n: 11,
+    key: "heating_tools_styling_chemicals",
+    sectionId: "C",
+    sectionTitle: "Lifestyle & Environmental Triggers",
+    type: "yesno",
+    prompt: "Do you regularly use heat styling tools, blow dryers, or styling chemicals?",
+    helperText: "Thermal stress causes hair cuticle lifting and mechanical breakage.",
+    options: [
+      { label: "No", value: "false" },
+      { label: "Yes", value: "true" },
+    ],
+  },
+  {
+    id: "q11_salon_treatments",
+    n: 11,
+    key: "salon_treatments",
+    sectionId: "C",
+    sectionTitle: "Lifestyle & Environmental Triggers",
+    type: "yesno",
+    prompt: "Have you had salon treatments like keratin, smoothening, rebonding, or botox in the past year?",
+    helperText: "Chemical treatments break disulfide bonds and can cause chemical shedding.",
+    options: [
+      { label: "No", value: "false" },
+      { label: "Yes", value: "true" },
+    ],
+  },
+  {
+    id: "q11_salon_detail",
+    n: 11,
+    key: "salon_treatment_detail",
+    sectionId: "C",
+    sectionTitle: "Lifestyle & Environmental Triggers",
+    type: "text",
+    prompt: "Which salon treatments did you have, and roughly when?",
+    helperText: "e.g. Keratin smoothing 4 months ago, Hair Botox last month.",
+    placeholder: "e.g. Keratin smoothing 4 months ago",
+  },
+  {
+    id: "q10_past_6_months",
+    n: 10,
+    key: "past_6_months",
+    sectionId: "C",
+    sectionTitle: "Lifestyle & Environmental Triggers",
+    type: "multi",
+    prompt: "In the past 6 months, have any of these life events or physical stressors occurred?",
+    helperText: "Why we ask: Telogen effluvium (acute shedding) typically begins 2–3 months following a physiological shock or illness.",
+    options: [
+      { label: "Crash dieting or major weight loss", value: "Crash dieting or major weight loss", emoji: "🥗" },
+      { label: "High stress or emotional trauma", value: "High stress or emotional trauma", emoji: "🧠" },
+      { label: "Fever with illness (COVID, Dengue, Typhoid)", value: "Fever with illness (COVID, Dengue, Typhoid)", emoji: "🌡️" },
+      { label: "Recent surgery or anesthesia", value: "Recent surgery", emoji: "🏥" },
+      { label: "Change in location / water / air quality", value: "Change in location/water/air quality", emoji: "✈️" },
+      { label: "None of these", value: "None of these", isExclusive: true },
+    ],
+  },
+
+  // Section D - Current Hair Care & Treatments
+  {
+    id: "q12_products_select",
+    n: 12,
+    key: "products",
+    sectionId: "D",
+    sectionTitle: "Current Hair Care & Treatments",
+    type: "multi",
+    prompt: "Have you tried any specialized hair care products, serums, minoxidil, or supplements?",
+    helperText: "You can select multiple or tap 'None / Just regular shampoo' to skip.",
+    options: [
+      { label: "OTC / Medicated Shampoos", value: "OTC/Medicated Shampoos", description: "Ketoconazole, Salicylic, Zinc Pyrithione" },
+      { label: "Hair Oils / Growth Serums", value: "Hair Oils/Serums", description: "Redensyl, Procapil, Rosemary, Ayurvedic oils" },
+      { label: "Topical Minoxidil (Tugain, Mintop, Morr-F)", value: "Topical Minoxidil", description: "2% or 5% solution/foam" },
+      { label: "Oral Minoxidil / Finasteride", value: "Oral Minoxidil", description: "Prescription oral pills" },
+      { label: "Supplements (Biotin, Follihair, Keraglo)", value: "Supplements", description: "Vitamins, minerals, amino acids" },
+      { label: "None / Just regular shampoo", value: "None", isExclusive: true },
+    ],
+  },
+  {
+    id: "q13_procedures_gate",
+    n: 13,
+    key: "procedures_gate",
+    sectionId: "D",
+    sectionTitle: "Current Hair Care & Treatments",
+    type: "yesno",
+    prompt: "Have you had any clinical procedures like PRP, stem cells, or hair transplant?",
+    helperText: "In-clinic dermatological treatments.",
+    options: [
+      { label: "No, never", value: "false" },
+      { label: "Yes, I have", value: "true" },
+    ],
+  },
+  {
+    id: "q13_procedures_select",
+    n: 13,
+    key: "procedures",
+    sectionId: "D",
+    sectionTitle: "Current Hair Care & Treatments",
+    type: "multi",
+    prompt: "Which clinical procedures have you undergone?",
+    helperText: "Select all that apply.",
+    options: [
+      { label: "PRP / GFC / iPRF (Platelet Therapy)", value: "PRP/GFC/iPRF" },
+      { label: "Stem Cells / Exosomes", value: "Stem Cells/Exosomes" },
+      { label: "Hair Transplant (FUE / FUT)", value: "Hair Transplant" },
+      { label: "Other clinical therapy (Mesotherapy, Laser)", value: "Other" },
+    ],
+  },
+  {
+    id: "q14_side_effects_gate",
+    n: 14,
+    key: "past_treatment_side_effects",
+    sectionId: "D",
+    sectionTitle: "Current Hair Care & Treatments",
+    type: "yesno",
+    prompt: "Have you ever experienced adverse reactions, allergies, or notable side effects from past hair treatments or medications?",
+    helperText: "e.g. Scalp flaking, itching, palpitations, facial hair growth.",
+    options: [
+      { label: "No side effects", value: "false" },
+      { label: "Yes, experienced side effects", value: "true" },
+    ],
+  },
+  {
+    id: "q14_side_effects_describe",
+    n: 14,
+    key: "past_treatment_side_effects_describe",
+    sectionId: "D",
+    sectionTitle: "Current Hair Care & Treatments",
+    type: "text",
+    prompt: "Please briefly describe the reaction or side effect you experienced:",
+    helperText: "Include the product/treatment name if you remember.",
+    placeholder: "e.g. Scalp redness and itching with 5% Minoxidil solution",
+  },
+
+  // Section E - Sample Collection & Consent
+  {
+    id: "q15_sample_type",
+    n: 15,
+    key: "sample_type",
+    sectionId: "E",
+    sectionTitle: "Sample Collection & Consent",
+    type: "single",
+    prompt: "For your personalized genomic and biomarker analysis, which sample collection method do you prefer?",
+    helperText: "Saliva is non-invasive and easy at home; blood provides a broader panel of metabolic and hormonal markers.",
+    options: [
+      { label: "Saliva sample (Home Kit)", value: "Saliva", emoji: "🧪", description: "Convenient non-invasive swab mailed to you" },
+      { label: "Blood draw (Clinical Lab)", value: "Blood", emoji: "🩸", description: "Comprehensive cellular and hormonal panel" },
+      { label: "Either / Doctor's choice", value: "Either", emoji: "✨", description: "Recommend the best option during consult" },
+    ],
+  },
+  {
+    id: "q16_consent",
+    n: 16,
+    key: "consent",
+    sectionId: "E",
+    sectionTitle: "Sample Collection & Consent",
+    type: "yesno",
+    prompt: "Do you consent to sample collection and clinical genetic analysis for your hair intake?",
+    helperText: "Your genomic data is encrypted, HIPAA-grade private, and strictly confidential to your clinical team.",
+    options: [
+      { label: "Yes, I consent", value: "true" },
+      { label: "No, not at this time", value: "false" },
+    ],
+  },
 ];
 
-export const ALL_QUESTIONS: QuestionConfig[] = [...SECTION_A_QUESTIONS];
+export const SECTION_A_QUESTIONS = ALL_QUESTIONS.filter((q) => q.sectionId === "A");
+export const SECTION_B_QUESTIONS = ALL_QUESTIONS.filter((q) => q.sectionId === "B");
+export const SECTION_C_QUESTIONS = ALL_QUESTIONS.filter((q) => q.sectionId === "C");
+export const SECTION_D_QUESTIONS = ALL_QUESTIONS.filter((q) => q.sectionId === "D");
+export const SECTION_E_QUESTIONS = ALL_QUESTIONS.filter((q) => q.sectionId === "E");
 
 export const WELCOME_MESSAGE = {
   text: "Hi! 👋 I'm here to help your doctor prepare for your consultation. You can tell me about your hair in your own words, or we'll go through it step by step.",
@@ -75,3 +352,4 @@ export const WELCOME_MESSAGE = {
     { id: "step-by-step", label: "➡️ Let's go step by step", disabled: false },
   ],
 };
+

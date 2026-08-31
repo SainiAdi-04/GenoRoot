@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   answerCurrentQuestion,
   createInitialEngineState,
+  editQuestion,
   getCurrentQuestion,
   resetEngineState,
   startStepByStep,
@@ -21,6 +22,8 @@ import { ReviewCard } from "./ReviewCard";
 import { NumberInput } from "../inputs/NumberInput";
 import { SingleSelectChips } from "../inputs/SingleSelectChips";
 import { MultiSelectChips } from "../inputs/MultiSelectChips";
+import { TextInput } from "../inputs/TextInput";
+import { CombinedYesNoInput } from "../inputs/CombinedYesNoInput";
 import { JsonDebugModal } from "../debug/JsonDebugModal";
 
 export const ChatContainer: React.FC = () => {
@@ -42,7 +45,7 @@ export const ChatContainer: React.FC = () => {
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [state.messages, state.phase, state.currentQuestionIndex]);
+  }, [state.messages, state.phase, state.currentStepId]);
 
   const handleStartStepByStep = () => {
     setState((prev) => startStepByStep(prev));
@@ -50,6 +53,28 @@ export const ChatContainer: React.FC = () => {
 
   const handleAnswer = (val: unknown) => {
     setState((prev) => answerCurrentQuestion(prev, val));
+  };
+
+  const handleEditField = (stepId: string) => {
+    setState((prev) => editQuestion(prev, stepId));
+  };
+
+  const handleConfirmSubmit = () => {
+    setState((prev) => ({
+      ...prev,
+      phase: "completed",
+      messages: [
+        ...prev.messages,
+        {
+          id: `msg_completed_${Date.now()}`,
+          sender: "bot",
+          content:
+            "✓✓ Intake complete and verified! Dr. Sharma will review your clinical brief before your consultation.",
+          timestamp: Date.now(),
+          isTransition: true,
+        },
+      ],
+    }));
   };
 
   const handleReset = () => {
@@ -96,7 +121,7 @@ export const ChatContainer: React.FC = () => {
                 />
               )}
 
-              {currentQ.type === "single" && (
+              {(currentQ.type === "single" || currentQ.type === "yesno" || currentQ.type === "hormonal") && (
                 <SingleSelectChips
                   question={currentQ}
                   onSelect={(val) => handleAnswer(val)}
@@ -119,16 +144,39 @@ export const ChatContainer: React.FC = () => {
                   }
                 />
               )}
+
+              {currentQ.type === "text" && (
+                <TextInput
+                  question={currentQ}
+                  onSubmit={(text) => handleAnswer(text)}
+                  defaultValue={
+                    state.formData[currentQ.key as keyof typeof state.formData] as
+                      | string
+                      | null
+                  }
+                />
+              )}
+
+              {currentQ.type === "combined_yesno" && (
+                <CombinedYesNoInput
+                  question={currentQ}
+                  onConfirm={(vals) => handleAnswer(vals)}
+                  defaultValue={{
+                    adult_acne_oily_skin: state.formData.adult_acne_oily_skin,
+                    excess_body_facial_hair: state.formData.excess_body_facial_hair,
+                  }}
+                />
+              )}
             </div>
           )}
 
           {/* Section Summary / Review Screen */}
-          {state.phase === "review" && (
+          {(state.phase === "review" || state.phase === "completed") && (
             <ReviewCard
               formData={state.formData}
-              onContinue={() => {
-                alert("Section A complete! Next sections will be enabled in Ticket 02.");
-              }}
+              onEditField={handleEditField}
+              onConfirmSubmit={handleConfirmSubmit}
+              isCompleted={state.phase === "completed"}
             />
           )}
 
@@ -145,3 +193,4 @@ export const ChatContainer: React.FC = () => {
     </div>
   );
 };
+

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { IntakeFormData } from "@/types/schema";
+import { formatFullSchemaJson } from "@/lib/engine";
 import { X, Copy, Check, Terminal } from "lucide-react";
 
 interface JsonDebugModalProps {
@@ -20,12 +21,7 @@ export const JsonDebugModal: React.FC<JsonDebugModalProps> = ({
   if (!isOpen) return null;
 
   // Schema-structured representation
-  const outputJson = {
-    form: "GenoRoot Hair & Scalp Intake",
-    timestamp: new Date().toISOString(),
-    intake_data: formData,
-  };
-
+  const outputJson = formatFullSchemaJson(formData);
   const jsonString = JSON.stringify(outputJson, null, 2);
 
   const handleCopy = async () => {

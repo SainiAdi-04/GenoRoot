@@ -3,9 +3,9 @@ export type QuestionType =
   | "single"
   | "multi"
   | "yesno"
-  | "table"
   | "text"
-  | "combined_yesno";
+  | "combined_yesno"
+  | "hormonal";
 
 export interface QuestionOption {
   label: string;
@@ -16,7 +16,7 @@ export interface QuestionOption {
 }
 
 export interface QuestionConfig {
-  id: string; // e.g. "q1", "q2"
+  id: string; // e.g. "q1", "q2", "q11_smoking"
   n: number;
   key: string;
   sectionId: "A" | "B" | "C" | "D" | "E";
@@ -49,13 +49,13 @@ export interface IntakeFormData {
   // Section C - Lifestyle & Environmental Triggers
   past_6_months?: string[] | null;
   habits?: {
-    smoking?: boolean | null;
-    smoking_severity?: "Mild <5/day" | "Moderate 5-10/day" | "Severe >10/day" | string | null;
-    alcohol?: boolean | null;
-    hard_water?: boolean | null;
-    hair_wash_frequency?: "Daily" | "Alternate Days" | "Weekly" | string | null;
-    heating_tools_styling_chemicals?: boolean | null;
-    salon_treatments?: boolean | null;
+    smoking: boolean;
+    smoking_severity?: "Mild <5/day" | "Moderate 5-10/day" | "Severe >10/day" | null;
+    alcohol: boolean;
+    hard_water: boolean;
+    hair_wash_frequency: "Daily" | "Alternate Days" | "Weekly" | string;
+    heating_tools_styling_chemicals: boolean;
+    salon_treatments: boolean;
     salon_treatment_detail?: string | null;
   } | null;
 
@@ -97,9 +97,11 @@ export type FlowPhase = "welcome" | "in_progress" | "review" | "completed";
 
 export interface EngineState {
   phase: FlowPhase;
+  currentStepId: string | null;
   currentQuestionIndex: number;
   answeredQuestionIds: string[];
   formData: IntakeFormData;
   messages: ChatMessage[];
   inferredSex?: "male" | "female" | null;
+  editingStepId?: string | null;
 }
