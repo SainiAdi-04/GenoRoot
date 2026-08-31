@@ -1,0 +1,34 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# next.js
+.next/
+out/
+
+# build
+build/
+dist/
+
+# env
+.env
+.env*.local
+
+# debug
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# scratch (agent work queue)
+.scratch/
+
+# typescript
+*.tsbuildinfo
+
