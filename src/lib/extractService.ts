@@ -1,6 +1,7 @@
 import { generateText, Output } from "ai";
 import { sarvam } from "sarvam-ai-sdk";
 import { z } from "zod";
+import { resolveBrandMentions, getBrandPromptContext } from "./brandResolver";
 
 export interface ExtractedFieldItem<T = unknown> {
   key: string;
@@ -556,34 +557,24 @@ export class MockExtractionProvider implements ExtractionProvider {
       };
     }
 
-    // Products
-    if (text.includes("tugain") || text.includes("minoxidil")) {
+    // Products (using Indian Brand Resolver)
+    const combinedOriginal = `${transcript} ${options?.rawCodemix || ""}`;
+    const resolvedCategories = resolveBrandMentions(combinedOriginal);
+    if (resolvedCategories.length > 0) {
       fields.products = {
-        value: [
-          {
-            name: "Topical Minoxidil",
-            used: true,
-            duration: "<3mo",
-            helped: false,
-            side_effects: text.includes("dry") || text.includes("redness") || text.includes("itch"),
-          },
-        ],
-        confidence: 0.9,
-      };
-    } else if (text.includes("follihair")) {
-      fields.products = {
-        value: [
-          {
-            name: "Supplements",
-            used: true,
-            duration: "3-6mo",
-            helped: true,
-            side_effects: false,
-          },
-        ],
+        value: resolvedCategories.map((cat) => ({
+          name: cat,
+          used: true,
+          duration: (cat === "Topical Minoxidil" ? "<3mo" : "3-6mo") as "<3mo" | "3-6mo" | ">6mo",
+          helped: cat === "Topical Minoxidil" ? false : true,
+          side_effects:
+            cat === "Topical Minoxidil" &&
+            (text.includes("dry") || text.includes("redness") || text.includes("itch")),
+        })),
         confidence: 0.9,
       };
     }
+
 
     return {
       fields,
@@ -790,12 +781,10 @@ Rules & Allowed Values:
 - hard_water: boolean (true if borewell or hard water mentioned).
 - hair_wash_frequency: "Daily", "Alternate Days", or "Weekly".
 - products: Indian brand resolver mapping:
-  * Tugain, Mintop, Morr-F -> "Topical Minoxidil"
-  * Follihair, Keraglo, Perfectil -> "Supplements"
-  * Scalpe-Pro, Selsun, Nizoral, Ketoconazole -> "OTC/Medicated Shampoos"
-  * Bontress, Redensyl, Procapil -> "Hair Oils/Serums"
-  used_names should contain the mapped generic category names.
+${getBrandPromptContext()}
+  used_names should strictly contain only the mapped generic schema categories ("Topical Minoxidil", "Supplements", "OTC/Medicated Shampoos", "Hair Oils/Serums", "Oral Minoxidil").
 - gender: "male", "female", or "unknown" based on Hindi grammar ("ka hoon" vs "ki hoon", "gaya" vs "gayi") and clinical cues (PCOS, postpartum, pregnancy, beard).`;
+
 
       const { output } = await generateText({
         model: modelInstance,

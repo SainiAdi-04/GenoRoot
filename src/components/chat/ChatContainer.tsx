@@ -210,6 +210,7 @@ export const ChatContainer: React.FC = () => {
                 <MultiSelectChips
                   question={currentQ}
                   onConfirm={(vals) => handleAnswer(vals)}
+                  onProcessingChange={setIsTranscribing}
                   defaultValues={
                     state.formData[currentQ.key as keyof typeof state.formData] as
                       | string[]
@@ -217,6 +218,7 @@ export const ChatContainer: React.FC = () => {
                   }
                 />
               )}
+
 
               {currentQ.type === "text" && (
                 <TextInput

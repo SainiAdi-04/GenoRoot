@@ -252,8 +252,9 @@ Drawn from motivational interviewing (OARS) and clinical UX research:
 - **Exit criteria:** A voice note fills multiple fields. Brand names resolve.
 
 ### Phase 3 — Differentiators (Sep 1, afternoon) · ~2-3h
-- [ ] Doctor's pre-consult triage card (LLM prompt on completed form)
+- [x] Doctor's pre-consult triage card (LLM prompt on completed form)
 - [ ] Split-screen desktop layout (chat left, live form right)
+
 - [ ] Evaluator persona buttons (3 mock datasets)
 - [ ] ✓✓ Blue tick animations
 - [ ] "Dr. Sharma reviewing" header + milestone progress

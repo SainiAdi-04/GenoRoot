@@ -140,4 +140,21 @@ describe("extractService seam > Provider Abstraction & Mock Provider", () => {
     expect(Object.keys(result.fields).length).toBe(0);
     expect(result.gender_inference.inferred_gender).toBe("unknown");
   });
+
+  it("resolves Indian brand names in voice notes (Mintop, Follihair, Scalpe-Pro, Bontress, Finax) to product categories", async () => {
+    const mockProvider = new MockExtractionProvider();
+    const result = await mockProvider.extract(
+      "Doctor recommended Mintop 5% solution and Follihair tablets. I also used Scalpe-Pro shampoo for dandruff.",
+      {
+        rawCodemix: "Doctor ne Mintop 5% aur Follihair bola tha, aur Scalpe-Pro shampoo bhi use kiya.",
+      }
+    );
+
+    expect(result.fields.products?.value).toBeDefined();
+    const productNames = result.fields.products?.value.map((p) => p.name);
+    expect(productNames).toContain("Topical Minoxidil");
+    expect(productNames).toContain("Supplements");
+    expect(productNames).toContain("OTC/Medicated Shampoos");
+  });
 });
+

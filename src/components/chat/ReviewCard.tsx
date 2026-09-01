@@ -1,14 +1,17 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { IntakeFormData } from "@/types/schema";
 import { CheckCheck, Edit3, ShieldCheck } from "lucide-react";
+import { DoctorTriageBriefing } from "@/lib/triageService";
+import { DoctorTriageCard } from "./DoctorTriageCard";
 
 interface ReviewCardProps {
   formData: IntakeFormData;
   onEditField?: (questionId: string) => void;
   onConfirmSubmit?: () => void;
   isCompleted?: boolean;
+  initialTriage?: DoctorTriageBriefing | null;
 }
 
 export const ReviewCard: React.FC<ReviewCardProps> = ({
@@ -16,7 +19,40 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   onEditField,
   onConfirmSubmit,
   isCompleted = false,
+  initialTriage = null,
 }) => {
+  const [triage, setTriage] = useState<DoctorTriageBriefing | null>(initialTriage);
+  const [isLoadingTriage, setIsLoadingTriage] = useState<boolean>(!initialTriage);
+  const [triageError, setTriageError] = useState<string | null>(null);
+
+  const fetchTriage = useCallback(async () => {
+    setIsLoadingTriage(true);
+    setTriageError(null);
+    try {
+      const res = await fetch("/api/triage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ formData }),
+      });
+      const data = await res.json();
+      if (data.success && data.triage) {
+        setTriage(data.triage);
+      } else {
+        setTriageError(data.error || "Failed to generate clinical briefing");
+      }
+    } catch (err) {
+      setTriageError(err instanceof Error ? err.message : "Network error");
+    } finally {
+      setIsLoadingTriage(false);
+    }
+  }, [formData]);
+
+  useEffect(() => {
+    if (!initialTriage) {
+      fetchTriage();
+    }
+  }, [fetchTriage, initialTriage]);
+
 
   const sections = [
     {
@@ -207,8 +243,17 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
       </div>
 
       {/* Sections Accordion / Listing */}
-      <div className="p-4 sm:p-6 space-y-4">
+      <div className="p-4 sm:p-6 space-y-5">
+        {/* Doctor's Pre-Consult Triage Card */}
+        <DoctorTriageCard
+          triage={triage}
+          isLoading={isLoadingTriage}
+          error={triageError}
+          onRetry={fetchTriage}
+        />
+
         {sections.map((sec) => (
+
           <div
             key={sec.id}
             className="border border-[rgba(243,240,223,0.1)] bg-[#101713] rounded-sm overflow-hidden"

@@ -242,9 +242,11 @@ export const ALL_QUESTIONS: QuestionConfig[] = [
     sectionId: "D",
     sectionTitle: "Current Hair Care & Treatments",
     type: "multi",
-    prompt: "Have you tried any specialized hair care products, serums, minoxidil, or supplements?",
-    helperText: "You can select multiple or tap 'None / Just regular shampoo' to skip.",
+    prompt: "Have you tried any specialized hair care products, serums, minoxidil, or supplements? You can say or type brand names like Tugain, Follihair, or Scalpe-Pro.",
+    helperText: "Tap chips or type/speak Indian brand names to auto-map. Tap 'None / Just regular shampoo' to skip.",
+    voiceEligible: true,
     options: [
+
       { label: "OTC / Medicated Shampoos", value: "OTC/Medicated Shampoos", description: "Ketoconazole, Salicylic, Zinc Pyrithione" },
       { label: "Hair Oils / Growth Serums", value: "Hair Oils/Serums", description: "Redensyl, Procapil, Rosemary, Ayurvedic oils" },
       { label: "Topical Minoxidil (Tugain, Mintop, Morr-F)", value: "Topical Minoxidil", description: "2% or 5% solution/foam" },
