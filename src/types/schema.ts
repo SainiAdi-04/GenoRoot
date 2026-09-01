@@ -111,7 +111,34 @@ export interface ChatMessage {
   metadata?: Record<string, unknown>;
 }
 
-export type FlowPhase = "welcome" | "in_progress" | "review" | "completed";
+export type FlowPhase =
+  | "welcome"
+  | "cascade"
+  | "gender_confirm"
+  | "in_progress"
+  | "review"
+  | "completed";
+
+export interface CascadeFieldItem<T = unknown> {
+  key: string;
+  label: string;
+  value: T;
+  displayValue: string;
+  confidence: number;
+  questionId: string;
+}
+
+export interface GenderInference {
+  inferred_gender: "male" | "female" | "unknown";
+  confidence: number;
+  cues?: string;
+}
+
+export interface CascadeData {
+  fields: CascadeFieldItem[];
+  genderInference?: GenderInference;
+  status: "pending_confirmation" | "confirmed" | "dismissed";
+}
 
 export interface EngineState {
   phase: FlowPhase;
@@ -121,5 +148,7 @@ export interface EngineState {
   formData: IntakeFormData;
   messages: ChatMessage[];
   inferredSex?: "male" | "female" | null;
+  genderCue?: string;
+  pendingCascade?: CascadeData | null;
   editingStepId?: string | null;
 }

@@ -1,7 +1,9 @@
 import { ALL_QUESTIONS, WELCOME_MESSAGE } from "@/data/questions";
 import {
+  CascadeFieldItem,
   ChatMessage,
   EngineState,
+  GenderInference,
   IntakeFormData,
   QuestionConfig,
 } from "@/types/schema";
@@ -21,6 +23,17 @@ export const PROCEDURE_CATEGORIES = [
   "Hair Transplant",
   "Other",
 ] as const;
+
+export const DEFAULT_HABITS = {
+  smoking: false,
+  smoking_severity: null,
+  alcohol: false,
+  hard_water: false,
+  hair_wash_frequency: "Alternate Days" as const,
+  heating_tools_styling_chemicals: false,
+  salon_treatments: false,
+  salon_treatment_detail: null,
+};
 
 export function slugify(str: string): string {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
@@ -248,6 +261,85 @@ export function formatUserAnswer(
   return String(answerValue);
 }
 
+// Sequential flow question order
+export const FLOW_QUESTION_ORDER = [
+  "q1",
+  "q2",
+  "q3",
+  "q4",
+  "q5",
+  "q6_q7_hormonal",
+  "q8_q9_skin",
+  "q11_smoking",
+  "q11_alcohol",
+  "q11_hard_water",
+  "q11_hair_wash_frequency",
+  "q11_heating_tools",
+  "q11_salon_treatments",
+  "q10_past_6_months",
+  "q12_products_select",
+  "q13_procedures_gate",
+  "q14_side_effects_gate",
+  "q15_sample_type",
+  "q16_consent",
+] as const;
+
+export function isQuestionAnswered(questionId: string, state: EngineState): boolean {
+  if (state.answeredQuestionIds?.includes(questionId)) {
+    return true;
+  }
+  const fd = state.formData;
+  switch (questionId) {
+    case "q1":
+      return fd.age_hair_loss_began != null;
+    case "q2":
+      return fd.duration != null;
+    case "q3":
+      return Array.isArray(fd.family_history) && fd.family_history.length > 0;
+    case "q4":
+      return Array.isArray(fd.pattern) && fd.pattern.length > 0;
+    case "q5":
+      return Array.isArray(fd.diagnosed_conditions) && fd.diagnosed_conditions.length > 0;
+    case "q6_q7_hormonal":
+      return (
+        fd.menstrual_cycle != null &&
+        fd.pregnancy_related != null &&
+        fd.menstrual_cycle !== "" &&
+        fd.pregnancy_related !== ""
+      );
+    case "q8_q9_skin":
+      return fd.adult_acne_oily_skin != null && fd.excess_body_facial_hair != null;
+    case "q11_smoking":
+      return fd.habits?.smoking != null;
+    case "q11_alcohol":
+      return fd.habits?.alcohol != null;
+    case "q11_hard_water":
+      return fd.habits?.hard_water != null;
+    case "q11_hair_wash_frequency":
+      return fd.habits?.hair_wash_frequency != null;
+    case "q11_heating_tools":
+      return fd.habits?.heating_tools_styling_chemicals != null;
+    case "q11_salon_treatments":
+      return fd.habits?.salon_treatments != null;
+    case "q11_salon_detail":
+      return !fd.habits?.salon_treatments || fd.habits?.salon_treatment_detail != null;
+    case "q10_past_6_months":
+      return Array.isArray(fd.past_6_months) && fd.past_6_months.length > 0;
+    case "q12_products_select":
+      return Array.isArray(fd.products) && fd.products.length > 0;
+    case "q13_procedures_gate":
+      return Array.isArray(fd.procedures) && fd.procedures.length > 0;
+    case "q14_side_effects_gate":
+      return fd.past_treatment_side_effects != null;
+    case "q15_sample_type":
+      return fd.sample_type != null;
+    case "q16_consent":
+      return fd.consent != null;
+    default:
+      return false;
+  }
+}
+
 // Compute the next step and any transition message
 interface NextStepResult {
   nextStepId: string | null;
@@ -255,7 +347,7 @@ interface NextStepResult {
   isCompleted?: boolean;
 }
 
-export function determineNextStep(
+export function getRawNextStep(
   currentStepId: string,
   updatedFormData: IntakeFormData
 ): NextStepResult {
@@ -438,6 +530,32 @@ export function determineNextStep(
   }
 
   return { nextStepId: null, isCompleted: true };
+}
+
+export function determineNextStep(
+  currentStepId: string,
+  updatedFormData: IntakeFormData,
+  answeredQuestionIds: string[] = []
+): NextStepResult {
+  let stepResult = getRawNextStep(currentStepId, updatedFormData);
+  let gatheredTransition = stepResult.transitionMessage;
+
+  while (
+    stepResult.nextStepId &&
+    answeredQuestionIds.includes(stepResult.nextStepId)
+  ) {
+    const candidateId = stepResult.nextStepId;
+    stepResult = getRawNextStep(candidateId, updatedFormData);
+    if (stepResult.transitionMessage) {
+      gatheredTransition = stepResult.transitionMessage;
+    }
+  }
+
+  return {
+    nextStepId: stepResult.nextStepId,
+    transitionMessage: gatheredTransition,
+    isCompleted: stepResult.isCompleted,
+  };
 }
 
 export function answerCurrentQuestion(
@@ -708,7 +826,7 @@ export function answerCurrentQuestion(
       (stepId === "q14_side_effects_gate" && updatedFormData.past_treatment_side_effects)
     ) {
       // Continue to detail question
-      const next = determineNextStep(stepId, updatedFormData);
+      const next = determineNextStep(stepId, updatedFormData, updatedAnsweredIds);
       if (next.nextStepId) {
         const nextQ = getCurrentQuestion(
           { ...state, phase: "in_progress", currentStepId: next.nextStepId, formData: updatedFormData },
@@ -754,7 +872,7 @@ export function answerCurrentQuestion(
   }
 
   // Determine next step
-  const nextResult = determineNextStep(stepId, updatedFormData);
+  const nextResult = determineNextStep(stepId, updatedFormData, updatedAnsweredIds);
 
   if (nextResult.transitionMessage) {
     newMessages.push({
@@ -950,5 +1068,384 @@ export function answerWithVoice(
   return answerCurrentQuestion(state, parseRes.value, questions, userVoiceMsg);
 }
 
+export interface VoiceCascadePayload {
+  fields: CascadeFieldItem[];
+  genderInference?: GenderInference;
+  voice?: {
+    audioUrl?: string;
+    durationSeconds?: number;
+    codemixTranscript?: string;
+    translateTranscript?: string;
+    isFallback?: boolean;
+  };
+}
 
+export function applyVoiceCascade(
+  state: EngineState,
+  payload: VoiceCascadePayload
+): EngineState {
+  const { fields, genderInference, voice } = payload;
+  const newMessages = [...state.messages];
 
+  if (voice && (voice.codemixTranscript || voice.translateTranscript)) {
+    newMessages.push({
+      id: `msg_user_voice_${Date.now()}`,
+      sender: "user",
+      content: voice.codemixTranscript || voice.translateTranscript || "Voice note recorded",
+      timestamp: Date.now(),
+      voice: {
+        audioUrl: voice.audioUrl,
+        durationSeconds: voice.durationSeconds,
+        codemixTranscript: voice.codemixTranscript,
+        translateTranscript: voice.translateTranscript,
+        isFallback: voice.isFallback,
+      },
+    });
+  }
+
+  // Edge Case: Empty or 0 fields extracted
+  if (!fields || fields.length === 0) {
+    newMessages.push({
+      id: `msg_bot_no_fields_${Date.now()}`,
+      sender: "bot",
+      content: voice?.codemixTranscript
+        ? `I heard: "${voice.codemixTranscript}". Let's walk through your intake step by step to ensure every detail is accurately captured.`
+        : "Let's walk through your intake step by step.",
+      timestamp: Date.now() + 1,
+    });
+
+    const firstQ = ALL_QUESTIONS.find((q) => q.id === "q1");
+    if (firstQ) {
+      newMessages.push({
+        id: `msg_q_${firstQ.id}_${Date.now() + 2}`,
+        sender: "bot",
+        content: firstQ.prompt,
+        timestamp: Date.now() + 2,
+        questionId: firstQ.id,
+      });
+    }
+
+    return {
+      ...state,
+      phase: "in_progress",
+      currentStepId: "q1",
+      currentQuestionIndex: 0,
+      messages: newMessages,
+    };
+  }
+
+  // Active cascade with auto-filled fields
+  newMessages.push({
+    id: `msg_bot_cascade_announcement_${Date.now()}`,
+    sender: "bot",
+    content: `🎉 ${fields.length} questions auto-filled from your voice note! Confirm all in one tap or tap any item to edit:`,
+    timestamp: Date.now() + 1,
+  });
+
+  return {
+    ...state,
+    phase: "cascade",
+    pendingCascade: {
+      fields,
+      genderInference,
+      status: "pending_confirmation",
+    },
+    messages: newMessages,
+  };
+}
+
+export function confirmCascade(
+  state: EngineState,
+  modifiedFields?: CascadeFieldItem[]
+): EngineState {
+  const fieldsToApply = modifiedFields || state.pendingCascade?.fields || [];
+  const updatedFormData: IntakeFormData = { ...state.formData };
+  const updatedAnsweredIds = [...state.answeredQuestionIds];
+
+  for (const field of fieldsToApply) {
+    if (!updatedAnsweredIds.includes(field.questionId)) {
+      updatedAnsweredIds.push(field.questionId);
+    }
+
+    switch (field.key) {
+      case "age_hair_loss_began":
+        updatedFormData.age_hair_loss_began = field.value as number;
+        break;
+      case "duration":
+        updatedFormData.duration = field.value as string;
+        break;
+      case "family_history":
+        updatedFormData.family_history = field.value as string[];
+        break;
+      case "pattern":
+        updatedFormData.pattern = field.value as string[];
+        break;
+      case "diagnosed_conditions":
+        updatedFormData.diagnosed_conditions = field.value as string[];
+        break;
+      case "menstrual_cycle":
+        updatedFormData.menstrual_cycle = field.value as string;
+        break;
+      case "pregnancy_related":
+        updatedFormData.pregnancy_related = field.value as string;
+        break;
+      case "skin_body_markers": {
+        const val = field.value as { adult_acne_oily_skin?: boolean; excess_body_facial_hair?: boolean };
+        updatedFormData.adult_acne_oily_skin = val.adult_acne_oily_skin ?? null;
+        updatedFormData.excess_body_facial_hair = val.excess_body_facial_hair ?? null;
+        break;
+      }
+      case "smoking":
+        updatedFormData.habits = {
+          ...(updatedFormData.habits || DEFAULT_HABITS),
+          smoking: Boolean(field.value),
+        };
+        break;
+      case "alcohol":
+        updatedFormData.habits = {
+          ...(updatedFormData.habits || DEFAULT_HABITS),
+          alcohol: Boolean(field.value),
+        };
+        break;
+      case "hard_water":
+        updatedFormData.habits = {
+          ...(updatedFormData.habits || DEFAULT_HABITS),
+          hard_water: Boolean(field.value),
+        };
+        break;
+      case "hair_wash_frequency":
+        updatedFormData.habits = {
+          ...(updatedFormData.habits || DEFAULT_HABITS),
+          hair_wash_frequency: field.value as string,
+        };
+        break;
+      case "heating_tools_styling_chemicals":
+        updatedFormData.habits = {
+          ...(updatedFormData.habits || DEFAULT_HABITS),
+          heating_tools_styling_chemicals: Boolean(field.value),
+        };
+        break;
+      case "salon_treatments":
+        updatedFormData.habits = {
+          ...(updatedFormData.habits || DEFAULT_HABITS),
+          salon_treatments: Boolean(field.value),
+        };
+        break;
+      case "past_6_months":
+        updatedFormData.past_6_months = field.value as string[];
+        break;
+      case "products":
+        updatedFormData.products = field.value as IntakeFormData["products"];
+        break;
+      case "procedures":
+        updatedFormData.procedures = field.value as IntakeFormData["procedures"];
+        break;
+      case "past_treatment_side_effects":
+        updatedFormData.past_treatment_side_effects = Boolean(field.value);
+        break;
+      case "sample_type":
+        updatedFormData.sample_type = field.value as string;
+        break;
+      case "consent":
+        updatedFormData.consent = Boolean(field.value);
+        break;
+    }
+  }
+
+  const genderInf = state.pendingCascade?.genderInference;
+  const newMessages = [...state.messages];
+
+  newMessages.push({
+    id: `msg_cascade_confirmed_${Date.now()}`,
+    sender: "bot",
+    content: "✓ Auto-filled answers confirmed.",
+    timestamp: Date.now(),
+    isTransition: true,
+  });
+
+  if (
+    genderInf &&
+    genderInf.inferred_gender !== "unknown" &&
+    genderInf.confidence >= 0.7 &&
+    !state.inferredSex
+  ) {
+    const cueText = genderInf.cues ? `${genderInf.cues}` : "linguistic cues in your voice note";
+    newMessages.push({
+      id: `msg_gender_prompt_${Date.now() + 1}`,
+      sender: "bot",
+      content: `I noticed you mentioned ${cueText} — I'll tailor a few health questions accordingly. Sound right?`,
+      timestamp: Date.now() + 1,
+    });
+
+    return {
+      ...state,
+      phase: "gender_confirm",
+      formData: updatedFormData,
+      answeredQuestionIds: updatedAnsweredIds,
+      messages: newMessages,
+      pendingCascade: {
+        fields: fieldsToApply,
+        genderInference: genderInf,
+        status: "confirmed",
+      },
+    };
+  }
+
+  return advanceAfterCascade({
+    ...state,
+    formData: updatedFormData,
+    answeredQuestionIds: updatedAnsweredIds,
+    messages: newMessages,
+  });
+}
+
+export function confirmGenderInference(
+  state: EngineState,
+  confirmed: boolean
+): EngineState {
+  const genderInf = state.pendingCascade?.genderInference;
+  const newMessages = [...state.messages];
+  const updatedFormData = { ...state.formData };
+  const updatedAnsweredIds = [...state.answeredQuestionIds];
+
+  if (confirmed && genderInf?.inferred_gender === "male") {
+    updatedFormData.menstrual_cycle = "Not applicable";
+    updatedFormData.pregnancy_related = "Not applicable";
+    if (!updatedAnsweredIds.includes("q6_q7_hormonal")) {
+      updatedAnsweredIds.push("q6_q7_hormonal");
+    }
+
+    newMessages.push({
+      id: `msg_gender_user_${Date.now()}`,
+      sender: "user",
+      content: "✓ That's right",
+      timestamp: Date.now(),
+    });
+
+    return advanceAfterCascade({
+      ...state,
+      inferredSex: "male",
+      formData: updatedFormData,
+      answeredQuestionIds: updatedAnsweredIds,
+      messages: newMessages,
+    });
+  } else if (confirmed && genderInf?.inferred_gender === "female") {
+    newMessages.push({
+      id: `msg_gender_user_${Date.now()}`,
+      sender: "user",
+      content: "✓ That's right",
+      timestamp: Date.now(),
+    });
+
+    return advanceAfterCascade({
+      ...state,
+      inferredSex: "female",
+      formData: updatedFormData,
+      answeredQuestionIds: updatedAnsweredIds,
+      messages: newMessages,
+    });
+  } else {
+    newMessages.push({
+      id: `msg_gender_user_${Date.now()}`,
+      sender: "user",
+      content: "✗ No, show all questions",
+      timestamp: Date.now(),
+    });
+
+    return advanceAfterCascade({
+      ...state,
+      inferredSex: null,
+      formData: updatedFormData,
+      answeredQuestionIds: updatedAnsweredIds,
+      messages: newMessages,
+    });
+  }
+}
+
+export function advanceAfterCascade(state: EngineState): EngineState {
+  const newMessages = [...state.messages];
+
+  // Find first unanswered step in question order
+  const nextStepId = FLOW_QUESTION_ORDER.find(
+    (stepId) => !isQuestionAnswered(stepId, state)
+  );
+
+  if (!nextStepId) {
+    newMessages.push({
+      id: `msg_all_filled_${Date.now()}`,
+      sender: "bot",
+      content:
+        "✓ All questions filled from your voice note! Review your summary below before submitting to Dr. Sharma.",
+      timestamp: Date.now(),
+      isTransition: true,
+    });
+
+    return {
+      ...state,
+      phase: "review",
+      currentStepId: null,
+      messages: newMessages,
+    };
+  }
+
+  newMessages.push({
+    id: `msg_trans_cascade_${Date.now()}`,
+    sender: "bot",
+    content: "Great, let me ask about a few more things to complete your clinical profile.",
+    timestamp: Date.now(),
+    isTransition: true,
+  });
+
+  const nextQ = getCurrentQuestion(
+    { ...state, phase: "in_progress", currentStepId: nextStepId },
+    ALL_QUESTIONS
+  );
+
+  if (nextQ) {
+    newMessages.push({
+      id: `msg_q_${nextQ.id}_${Date.now() + 1}`,
+      sender: "bot",
+      content: nextQ.prompt,
+      timestamp: Date.now() + 1,
+      questionId: nextQ.id,
+    });
+  }
+
+  const stepIndex = (FLOW_QUESTION_ORDER as readonly string[]).indexOf(nextStepId);
+
+  return {
+    ...state,
+    phase: "in_progress",
+    currentStepId: nextStepId,
+    currentQuestionIndex: Math.max(0, stepIndex),
+    messages: newMessages,
+  };
+}
+
+export function updateCascadeField(
+  state: EngineState,
+  keyOrQuestionId: string,
+  newValue: unknown,
+  newDisplayValue?: string
+): EngineState {
+  if (!state.pendingCascade) return state;
+
+  const updatedFields = state.pendingCascade.fields.map((f) => {
+    if (f.key === keyOrQuestionId || f.questionId === keyOrQuestionId) {
+      return {
+        ...f,
+        value: newValue,
+        displayValue: newDisplayValue || String(newValue),
+      };
+    }
+    return f;
+  });
+
+  return {
+    ...state,
+    pendingCascade: {
+      ...state.pendingCascade,
+      fields: updatedFields,
+    },
+  };
+}

@@ -7,7 +7,12 @@ import {
   formatFullSchemaJson,
   editQuestion,
   answerWithVoice,
+  applyVoiceCascade,
+  confirmCascade,
+  confirmGenderInference,
+  updateCascadeField,
 } from "./engine";
+import { CascadeFieldItem } from "@/types/schema";
 
 describe("Chat Flow Engine - All 16 Questions", () => {
   it("initializes in welcome phase with initial welcome bot message", () => {
@@ -382,6 +387,283 @@ describe("Chat Flow Engine - All 16 Questions", () => {
 
       expect(state.formData.habits?.salon_treatment_detail).toBe("had keratin smoothing done 4 months ago");
       expect(state.currentStepId).toBe("q10_past_6_months");
+    });
+  });
+
+  describe("Voice Cascade Seam", () => {
+    it("handles empty or zero-field voice note by falling back gracefully to step-by-step from Q1", () => {
+      let state = createInitialEngineState();
+      state = applyVoiceCascade(state, {
+        fields: [],
+        voice: {
+          codemixTranscript: "hello doctor",
+          translateTranscript: "hello doctor",
+          durationSeconds: 3,
+        },
+      });
+
+      expect(state.phase).toBe("in_progress");
+      expect(state.currentStepId).toBe("q1");
+      const lastMsg = state.messages[state.messages.length - 1];
+      expect(lastMsg.content).toContain("Roughly how old were you");
+    });
+
+    it("auto-fills extracted fields and sets state to cascade phase", () => {
+      let state = createInitialEngineState();
+      const extractedFields: CascadeFieldItem[] = [
+        {
+          key: "age_hair_loss_began",
+          label: "Age hair loss began",
+          value: 45,
+          displayValue: "45 years old",
+          confidence: 0.95,
+          questionId: "q1",
+        },
+        {
+          key: "duration",
+          label: "Duration",
+          value: "6-12 months",
+          displayValue: "6-12 months",
+          confidence: 0.9,
+          questionId: "q2",
+        },
+        {
+          key: "family_history",
+          label: "Family history",
+          value: ["Father had hair loss"],
+          displayValue: "Father had hair loss",
+          confidence: 0.9,
+          questionId: "q3",
+        },
+        {
+          key: "pattern",
+          label: "Hair loss pattern",
+          value: ["Thinning at crown"],
+          displayValue: "Thinning at crown",
+          confidence: 0.95,
+          questionId: "q4",
+        },
+      ];
+
+      state = applyVoiceCascade(state, {
+        fields: extractedFields,
+        genderInference: {
+          inferred_gender: "male",
+          confidence: 0.9,
+          cues: "your mention of '45 saal ka hoon'",
+        },
+        voice: {
+          codemixTranscript: "Main 45 saal ka hoon. 8 mahine se crown area me thinning ho rahi hai.",
+          translateTranscript: "I am 45 years old. For 8 months thinning in crown area.",
+          durationSeconds: 15,
+        },
+      });
+
+      expect(state.phase).toBe("cascade");
+      expect(state.pendingCascade?.fields.length).toBe(4);
+      expect(state.messages.some((m) => m.content.includes("4 questions auto-filled"))).toBe(true);
+    });
+
+    it("confirming cascade commits fields to formData, marks them answered, and prompts gender confirmation if confident", () => {
+      let state = createInitialEngineState();
+      const extractedFields: CascadeFieldItem[] = [
+        {
+          key: "age_hair_loss_began",
+          label: "Age hair loss began",
+          value: 45,
+          displayValue: "45 years old",
+          confidence: 0.95,
+          questionId: "q1",
+        },
+        {
+          key: "duration",
+          label: "Duration",
+          value: "6-12 months",
+          displayValue: "6-12 months",
+          confidence: 0.9,
+          questionId: "q2",
+        },
+      ];
+
+      state = applyVoiceCascade(state, {
+        fields: extractedFields,
+        genderInference: {
+          inferred_gender: "male",
+          confidence: 0.92,
+          cues: "your mention of '45 saal ka hoon'",
+        },
+      });
+
+      state = confirmCascade(state);
+
+      expect(state.formData.age_hair_loss_began).toBe(45);
+      expect(state.formData.duration).toBe("6-12 months");
+      expect(state.answeredQuestionIds).toContain("q1");
+      expect(state.answeredQuestionIds).toContain("q2");
+      expect(state.phase).toBe("gender_confirm");
+      expect(state.messages.some((m) => m.content.includes("Sound right?"))).toBe(true);
+    });
+
+    it("confirming male gender inference sets inferredSex, auto-skips Q6/Q7 hormonal, and advances to first unanswered question", () => {
+      let state = createInitialEngineState();
+      const extractedFields: CascadeFieldItem[] = [
+        {
+          key: "age_hair_loss_began",
+          label: "Age hair loss began",
+          value: 45,
+          displayValue: "45 years old",
+          confidence: 0.95,
+          questionId: "q1",
+        },
+        {
+          key: "duration",
+          label: "Duration",
+          value: "6-12 months",
+          displayValue: "6-12 months",
+          confidence: 0.9,
+          questionId: "q2",
+        },
+        {
+          key: "family_history",
+          label: "Family history",
+          value: ["Father had hair loss"],
+          displayValue: "Father had hair loss",
+          confidence: 0.9,
+          questionId: "q3",
+        },
+        {
+          key: "pattern",
+          label: "Hair loss pattern",
+          value: ["Thinning at crown"],
+          displayValue: "Thinning at crown",
+          confidence: 0.95,
+          questionId: "q4",
+        },
+      ];
+
+      state = applyVoiceCascade(state, {
+        fields: extractedFields,
+        genderInference: {
+          inferred_gender: "male",
+          confidence: 0.92,
+          cues: "your mention of '45 saal ka hoon'",
+        },
+      });
+
+      state = confirmCascade(state);
+      expect(state.phase).toBe("gender_confirm");
+
+      state = confirmGenderInference(state, true);
+      expect(state.inferredSex).toBe("male");
+      expect(state.formData.menstrual_cycle).toBe("Not applicable");
+      expect(state.formData.pregnancy_related).toBe("Not applicable");
+      expect(state.answeredQuestionIds).toContain("q6_q7_hormonal");
+      expect(state.phase).toBe("in_progress");
+      // Q1-Q4 filled, Q5 unanswered -> jumps to Q5
+      expect(state.currentStepId).toBe("q5");
+    });
+
+    it("declining gender inference keeps unified hormonal card and advances to next unanswered question", () => {
+      let state = createInitialEngineState();
+      const extractedFields: CascadeFieldItem[] = [
+        {
+          key: "age_hair_loss_began",
+          label: "Age hair loss began",
+          value: 28,
+          displayValue: "28 years old",
+          confidence: 0.95,
+          questionId: "q1",
+        },
+      ];
+
+      state = applyVoiceCascade(state, {
+        fields: extractedFields,
+        genderInference: {
+          inferred_gender: "female",
+          confidence: 0.85,
+          cues: "content clues",
+        },
+      });
+
+      state = confirmCascade(state);
+      state = confirmGenderInference(state, false);
+
+      expect(state.inferredSex).toBeNull();
+      expect(state.answeredQuestionIds).not.toContain("q6_q7_hormonal");
+      expect(state.phase).toBe("in_progress");
+      expect(state.currentStepId).toBe("q2");
+    });
+
+    it("skips questions that are already answered during sequential progression", () => {
+      let state = createInitialEngineState();
+      state = startStepByStep(state);
+      // Pre-fill Q3 and Q4 (e.g. from partial extraction)
+      state.formData.family_history = ["Mother had hair loss"];
+      state.answeredQuestionIds.push("q3");
+      state.formData.pattern = ["Diffuse thinning"];
+      state.answeredQuestionIds.push("q4");
+
+      // Current step is Q1 -> answer Q1
+      state = answerCurrentQuestion(state, 25);
+      expect(state.currentStepId).toBe("q2");
+
+      // Answer Q2 -> since Q3 and Q4 are already answered, engine should skip to Q5!
+      state = answerCurrentQuestion(state, "Over a year");
+      expect(state.currentStepId).toBe("q5");
+    });
+
+    it("voice cascade that fills all 16 questions transitions directly to review screen", () => {
+      let state = createInitialEngineState();
+      const allFieldItems: CascadeFieldItem[] = [
+        { key: "age_hair_loss_began", label: "Age", value: 35, displayValue: "35", confidence: 1, questionId: "q1" },
+        { key: "duration", label: "Duration", value: "Over a year", displayValue: "Over a year", confidence: 1, questionId: "q2" },
+        { key: "family_history", label: "Family", value: ["Father had hair loss"], displayValue: "Father had hair loss", confidence: 1, questionId: "q3" },
+        { key: "pattern", label: "Pattern", value: ["Thinning at crown"], displayValue: "Thinning at crown", confidence: 1, questionId: "q4" },
+        { key: "diagnosed_conditions", label: "Conditions", value: ["None"], displayValue: "None", confidence: 1, questionId: "q5" },
+        { key: "menstrual_cycle", label: "Periods", value: "Not applicable", displayValue: "Not applicable", confidence: 1, questionId: "q6_q7_hormonal" },
+        { key: "pregnancy_related", label: "Maternal", value: "Not applicable", displayValue: "Not applicable", confidence: 1, questionId: "q6_q7_hormonal" },
+        { key: "skin_body_markers", label: "Skin", value: { adult_acne_oily_skin: false, excess_body_facial_hair: false }, displayValue: "No", confidence: 1, questionId: "q8_q9_skin" },
+        { key: "smoking", label: "Smoking", value: false, displayValue: "No", confidence: 1, questionId: "q11_smoking" },
+        { key: "alcohol", label: "Alcohol", value: false, displayValue: "No", confidence: 1, questionId: "q11_alcohol" },
+        { key: "hard_water", label: "Hard water", value: false, displayValue: "No", confidence: 1, questionId: "q11_hard_water" },
+        { key: "hair_wash_frequency", label: "Wash freq", value: "Daily", displayValue: "Daily", confidence: 1, questionId: "q11_hair_wash_frequency" },
+        { key: "heating_tools_styling_chemicals", label: "Heat tools", value: false, displayValue: "No", confidence: 1, questionId: "q11_heating_tools" },
+        { key: "salon_treatments", label: "Salon", value: false, displayValue: "No", confidence: 1, questionId: "q11_salon_treatments" },
+        { key: "past_6_months", label: "Past 6mo", value: ["None"], displayValue: "None", confidence: 1, questionId: "q10_past_6_months" },
+        { key: "products", label: "Products", value: [], displayValue: "None", confidence: 1, questionId: "q12_products_select" },
+        { key: "procedures", label: "Procedures", value: [], displayValue: "None", confidence: 1, questionId: "q13_procedures_gate" },
+        { key: "past_treatment_side_effects", label: "Side effects", value: false, displayValue: "No", confidence: 1, questionId: "q14_side_effects_gate" },
+        { key: "sample_type", label: "Sample", value: "Saliva", displayValue: "Saliva", confidence: 1, questionId: "q15_sample_type" },
+        { key: "consent", label: "Consent", value: true, displayValue: "Yes", confidence: 1, questionId: "q16_consent" },
+      ];
+
+      state = applyVoiceCascade(state, {
+        fields: allFieldItems,
+      });
+      state = confirmCascade(state);
+
+      expect(state.phase).toBe("review");
+      expect(state.currentStepId).toBeNull();
+    });
+
+    it("allows updating an individual cascade field before confirming", () => {
+      let state = createInitialEngineState();
+      const extractedFields: CascadeFieldItem[] = [
+        {
+          key: "age_hair_loss_began",
+          label: "Age hair loss began",
+          value: 45,
+          displayValue: "45 years old",
+          confidence: 0.95,
+          questionId: "q1",
+        },
+      ];
+
+      state = applyVoiceCascade(state, { fields: extractedFields });
+      state = updateCascadeField(state, "q1", 42, "42 years old");
+
+      expect(state.pendingCascade?.fields[0].value).toBe(42);
+      expect(state.pendingCascade?.fields[0].displayValue).toBe("42 years old");
     });
   });
 });

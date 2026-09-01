@@ -4,22 +4,34 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   answerCurrentQuestion,
   answerWithVoice,
+  applyVoiceCascade,
+  confirmCascade,
+  confirmGenderInference,
   createInitialEngineState,
   editQuestion,
   getCurrentQuestion,
   resetEngineState,
   startStepByStep,
+  updateCascadeField,
 } from "@/lib/engine";
 import {
   clearStateStorage,
   loadStateFromStorage,
   saveStateToStorage,
 } from "@/lib/storage";
-import { EngineState, VoiceInputPayload } from "@/types/schema";
+import {
+  CascadeFieldItem,
+  EngineState,
+  GenderInference,
+  VoiceInputPayload,
+  VoiceMetadata,
+} from "@/types/schema";
 import { ChatHeader } from "./ChatHeader";
 import { MessageBubble } from "./MessageBubble";
 import { WelcomeCard } from "./WelcomeCard";
 import { ReviewCard } from "./ReviewCard";
+import { CascadeCard } from "./CascadeCard";
+import { GenderConfirmCard } from "./GenderConfirmCard";
 import { NumberInput } from "../inputs/NumberInput";
 import { SingleSelectChips } from "../inputs/SingleSelectChips";
 import { MultiSelectChips } from "../inputs/MultiSelectChips";
@@ -37,6 +49,7 @@ export const ChatContainer: React.FC = () => {
   });
   const [isDebugOpen, setIsDebugOpen] = useState<boolean>(false);
   const [isTranscribing, setIsTranscribing] = useState<boolean>(false);
+  const [typingStatus, setTypingStatus] = useState<string>("Dr. Sharma is transcribing…");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   // Persist state to localStorage on update
@@ -59,6 +72,32 @@ export const ChatContainer: React.FC = () => {
 
   const handleVoiceSubmit = (payload: VoiceInputPayload) => {
     setState((prev) => answerWithVoice(prev, payload));
+  };
+
+  const handleVoiceCascade = (payload: {
+    fields: CascadeFieldItem[];
+    genderInference?: GenderInference;
+    voice?: VoiceMetadata;
+  }) => {
+    setState((prev) => applyVoiceCascade(prev, payload));
+  };
+
+  const handleConfirmCascade = () => {
+    setState((prev) => confirmCascade(prev));
+  };
+
+  const handleUpdateCascadeField = (
+    fieldKey: string,
+    newValue: unknown,
+    newDisplayValue?: string
+  ) => {
+    setState((prev) =>
+      updateCascadeField(prev, fieldKey, newValue, newDisplayValue)
+    );
+  };
+
+  const handleConfirmGender = (confirmed: boolean) => {
+    setState((prev) => confirmGenderInference(prev, confirmed));
   };
 
   const handleEditField = (stepId: string) => {
@@ -109,7 +148,31 @@ export const ChatContainer: React.FC = () => {
 
           {/* Welcome Screen Card */}
           {state.phase === "welcome" && (
-            <WelcomeCard onStartStepByStep={handleStartStepByStep} />
+            <WelcomeCard
+              onStartStepByStep={handleStartStepByStep}
+              onVoiceCascade={handleVoiceCascade}
+              onProcessingChange={(isProc, statusText) => {
+                setIsTranscribing(isProc);
+                if (statusText) setTypingStatus(statusText);
+              }}
+            />
+          )}
+
+          {/* Voice Cascade Confirmation Card */}
+          {state.phase === "cascade" && state.pendingCascade && (
+            <CascadeCard
+              fields={state.pendingCascade.fields}
+              onConfirmAll={handleConfirmCascade}
+              onUpdateField={handleUpdateCascadeField}
+            />
+          )}
+
+          {/* Gender Personalization Confirmation Card */}
+          {state.phase === "gender_confirm" && (
+            <GenderConfirmCard
+              genderInference={state.pendingCascade?.genderInference}
+              onConfirm={handleConfirmGender}
+            />
           )}
 
           {/* Active Question Input Controls */}
@@ -194,7 +257,7 @@ export const ChatContainer: React.FC = () => {
                   <span className="w-2 h-2 rounded-full bg-[#f3f0df] animate-bounce [animation-delay:0.4s]" />
                 </div>
                 <span className="text-xs font-mono text-[rgba(243,240,223,0.7)] tracking-wide">
-                  Dr. Sharma is transcribing…
+                  {typingStatus}
                 </span>
               </div>
             </div>

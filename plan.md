@@ -244,10 +244,10 @@ Drawn from motivational interviewing (OARS) and clinical UX research:
 ### Phase 2 — Voice + AI (Sep 1, morning) · ~3-4h
 - [x] Sarvam STT integration (`saaras:v3`, codemix + translate modes)
 - [x] Voice recording UI (WhatsApp-style mic button, waveform, playback)
-- [ ] `sarvam-105b` structured extraction (voice note → JSON fields)
-- [ ] Voice cascade UI (auto-fill cards, confirm-all)
-- [ ] Gender inference from transcript + casual confirmation
-- [ ] Brand resolver dictionary + LLM mapping
+- [x] sarvam-105b structured extraction (voice note → JSON fields)
+- [x] Voice cascade UI (auto-fill cards, confirm-all)
+- [x] Gender inference from transcript + casual confirmation
+- [x] Brand resolver dictionary + LLM mapping
 - [x] API routes in Next.js (hide Sarvam API key)
 - **Exit criteria:** A voice note fills multiple fields. Brand names resolve.
 
