@@ -28,6 +28,8 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
+  const durationRef = useRef<number>(0);
+  const startTimeRef = useRef<number>(0);
 
   useEffect(() => {
     return () => {
@@ -87,6 +89,17 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
       };
 
       mediaRecorder.onstop = async () => {
+        const elapsedMs = Date.now() - startTimeRef.current;
+        if (elapsedMs < 600) {
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach((track) => track.stop());
+            streamRef.current = null;
+          }
+          setStatus("idle");
+          setErrorMessage("Recording was too short. Tap the mic, speak your response, then tap again to finish.");
+          return;
+        }
+
         const rawMime = mimeType || "audio/webm";
         const cleanMime = rawMime.includes("mp4") || rawMime.includes("aac") ? "audio/mp4" : "audio/webm";
         const audioBlob = new Blob(chunksRef.current, {
@@ -98,7 +111,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
           streamRef.current = null;
         }
 
-        const finalDuration = duration;
+        const finalDuration = Math.max(1, durationRef.current);
         const audioUrl = URL.createObjectURL(audioBlob);
 
         setStatus("transcribing");
@@ -117,17 +130,20 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
 
           const data = await res.json();
 
-          if (data.success && data.codemix) {
+          if (data.success && data.codemix?.trim()) {
             onVoiceSubmitted({
               audioUrl,
-              durationSeconds: Math.max(1, finalDuration),
-              codemix: data.codemix,
-              translate: data.translate || data.codemix,
+              durationSeconds: finalDuration,
+              codemix: data.codemix.trim(),
+              translate: (data.translate || data.codemix).trim(),
               isFallback: data.isFallback,
             });
             setStatus("idle");
           } else {
-            setErrorMessage(data.error || "Unable to transcribe voice note. Please type your response.");
+            setErrorMessage(
+              data.error ||
+              "No speech was detected. Please speak clearly into the microphone or type your response."
+            );
             setStatus("idle");
           }
         } catch (err: unknown) {
@@ -140,11 +156,14 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
       };
 
       mediaRecorder.start(250);
+      startTimeRef.current = Date.now();
+      durationRef.current = 0;
       setStatus("recording");
       setDuration(0);
 
       timerRef.current = setInterval(() => {
-        setDuration((prev) => prev + 1);
+        durationRef.current += 1;
+        setDuration(durationRef.current);
       }, 1000);
     } catch (err: unknown) {
       const msg =

@@ -44,9 +44,11 @@ describe("transcribeService seam", () => {
       expect(file.type).not.toContain(";codecs=");
 
       expect(model).toBe("saaras:v3");
+      expect(formData?.get("language_code")).toBe("unknown");
       expect(init?.headers).toEqual(
         expect.objectContaining({
           "api-subscription-key": "test-sarvam-key",
+          Authorization: "Bearer test-sarvam-key",
         })
       );
 
@@ -134,5 +136,26 @@ describe("transcribeService seam", () => {
 
     expect(res.success).toBe(false);
     expect(res.error).toContain("empty");
+  });
+
+  it("handles empty speech transcript by returning friendly error", async () => {
+    const mockEmptyFetch = mock(async () => {
+      return new Response(
+        JSON.stringify({
+          request_id: "req-empty",
+          transcript: "",
+          language_code: "hi-IN",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    });
+
+    const res = await processAudioTranscription(dummyBlob, {
+      apiKey: "test-key",
+      fetchFn: mockEmptyFetch as unknown as typeof fetch,
+    });
+
+    expect(res.success).toBe(false);
+    expect(res.error).toContain("No speech was detected");
   });
 });

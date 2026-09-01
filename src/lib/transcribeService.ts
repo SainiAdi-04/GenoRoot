@@ -88,6 +88,7 @@ async function callSarvamSTTMode(
   formData.append("file", cleanBlob, filename);
   formData.append("model", "saaras:v3");
   formData.append("mode", mode);
+  formData.append("language_code", "unknown");
 
   // Cross-runtime timeout signal
   const controller = new AbortController();
@@ -98,6 +99,7 @@ async function callSarvamSTTMode(
       method: "POST",
       headers: {
         "api-subscription-key": apiKey,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: formData,
       signal: controller.signal,
@@ -154,17 +156,37 @@ export async function processAudioTranscription(
   }
 
   try {
-    // Call both codemix and translate modes in parallel
-    const [codemixRes, translateRes] = await Promise.all([
-      callSarvamSTTMode(audioBlobOrFile, "codemix", apiKey, fetchFn, timeoutMs),
-      callSarvamSTTMode(audioBlobOrFile, "translate", apiKey, fetchFn, timeoutMs),
-    ]);
+    // 1. Call primary codemix transcription (captures Hinglish, Hindi, and English as spoken)
+    const codemixRes = await callSarvamSTTMode(audioBlobOrFile, "codemix", apiKey, fetchFn, timeoutMs);
+
+    if (!codemixRes.transcript) {
+      return {
+        success: false,
+        error: "No speech was detected in your recording. Please speak clearly into the microphone and try again.",
+      };
+    }
+
+    // 2. Safely attempt translation for field extraction (falls back to codemix if already English or empty)
+    let translateText = codemixRes.transcript;
+    let languageCode = codemixRes.languageCode;
+
+    try {
+      const translateRes = await callSarvamSTTMode(audioBlobOrFile, "translate", apiKey, fetchFn, timeoutMs);
+      if (translateRes.transcript) {
+        translateText = translateRes.transcript;
+      }
+      if (translateRes.languageCode) {
+        languageCode = translateRes.languageCode;
+      }
+    } catch {
+      // Non-fatal: if translation fails or audio is already English, keep codemix text
+    }
 
     return {
       success: true,
       codemix: codemixRes.transcript,
-      translate: translateRes.transcript,
-      languageCode: translateRes.languageCode || codemixRes.languageCode,
+      translate: translateText,
+      languageCode: languageCode || "hi-IN",
       isFallback: false,
     };
   } catch (err: unknown) {
