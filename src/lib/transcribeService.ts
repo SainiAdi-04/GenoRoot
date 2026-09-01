@@ -44,6 +44,38 @@ export function getFallbackForQuestion(questionId?: string): { codemix: string; 
   };
 }
 
+export function sanitizeAudioBlobForSarvam(
+  blobOrFile: Blob | File
+): { cleanBlob: Blob; filename: string } {
+  const rawType = (blobOrFile.type || "").toLowerCase();
+  let cleanMime = "audio/webm";
+  let extension = "webm";
+
+  if (rawType.includes("webm")) {
+    cleanMime = "audio/webm";
+    extension = "webm";
+  } else if (rawType.includes("mp4") || rawType.includes("m4a")) {
+    cleanMime = "audio/mp4";
+    extension = "mp4";
+  } else if (rawType.includes("wav")) {
+    cleanMime = "audio/wav";
+    extension = "wav";
+  } else if (rawType.includes("ogg") || rawType.includes("opus")) {
+    cleanMime = "audio/ogg";
+    extension = "ogg";
+  } else if (rawType.includes("aac")) {
+    cleanMime = "audio/aac";
+    extension = "aac";
+  } else if (rawType.includes("mpeg") || rawType.includes("mp3")) {
+    cleanMime = "audio/mpeg";
+    extension = "mp3";
+  }
+
+  // Sarvam strictly allows pure MIME types (e.g. 'audio/webm') and rejects ';codecs=opus'
+  const cleanBlob = new Blob([blobOrFile], { type: cleanMime });
+  return { cleanBlob, filename: `recording.${extension}` };
+}
+
 async function callSarvamSTTMode(
   audioBlobOrFile: Blob | File,
   mode: "codemix" | "translate",
@@ -51,8 +83,9 @@ async function callSarvamSTTMode(
   fetchFn: typeof fetch,
   timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<{ transcript: string; languageCode?: string }> {
+  const { cleanBlob, filename } = sanitizeAudioBlobForSarvam(audioBlobOrFile);
   const formData = new FormData();
-  formData.append("file", audioBlobOrFile, "audio.webm");
+  formData.append("file", cleanBlob, filename);
   formData.append("model", "saaras:v3");
   formData.append("mode", mode);
 
@@ -72,7 +105,14 @@ async function callSarvamSTTMode(
 
     if (!res.ok) {
       const errorText = await res.text().catch(() => "");
-      throw new Error(`Sarvam STT (${mode}) error ${res.status}: ${errorText || res.statusText}`);
+      let parsedError = errorText;
+      try {
+        const json = JSON.parse(errorText);
+        parsedError = json?.error?.message || json?.message || errorText;
+      } catch {
+        // use raw text
+      }
+      throw new Error(`Sarvam STT (${mode}) error ${res.status}: ${parsedError || res.statusText}`);
     }
 
     const data = (await res.json()) as { transcript?: string; language_code?: string };

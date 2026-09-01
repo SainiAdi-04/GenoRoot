@@ -87,8 +87,10 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
       };
 
       mediaRecorder.onstop = async () => {
+        const rawMime = mimeType || "audio/webm";
+        const cleanMime = rawMime.includes("mp4") || rawMime.includes("aac") ? "audio/mp4" : "audio/webm";
         const audioBlob = new Blob(chunksRef.current, {
-          type: mimeType || "audio/webm",
+          type: cleanMime,
         });
 
         if (streamRef.current) {
@@ -104,7 +106,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
 
         try {
           const formData = new FormData();
-          const ext = mimeType.includes("mp4") ? "mp4" : "webm";
+          const ext = cleanMime.includes("mp4") ? "mp4" : "webm";
           formData.append("file", audioBlob, `speech.${ext}`);
           formData.append("questionId", questionId);
 

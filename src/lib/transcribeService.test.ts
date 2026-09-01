@@ -39,6 +39,9 @@ describe("transcribeService seam", () => {
       const formData = init?.body as FormData;
       const mode = formData?.get("mode");
       const model = formData?.get("model");
+      const file = formData?.get("file") as Blob;
+      expect(file.type).toBe("audio/webm");
+      expect(file.type).not.toContain(";codecs=");
 
       expect(model).toBe("saaras:v3");
       expect(init?.headers).toEqual(
@@ -70,7 +73,8 @@ describe("transcribeService seam", () => {
       return new Response("Not found", { status: 404 });
     });
 
-    const res = await processAudioTranscription(dummyBlob, {
+    const opusBlob = new Blob(["dummy audio bytes"], { type: "audio/webm;codecs=opus" });
+    const res = await processAudioTranscription(opusBlob, {
       apiKey: "test-sarvam-key",
       fetchFn: mockFetch as unknown as typeof fetch,
     });
