@@ -3,6 +3,7 @@
 import React from "react";
 import { ChatMessage } from "@/types/schema";
 import { CheckCheck } from "lucide-react";
+import { VoiceBubble } from "./VoiceBubble";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -22,7 +23,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       <div className="w-full my-4 flex justify-center animate-fade-in">
         <div className="max-w-md w-full bg-[#18241e] border border-[rgba(78,135,102,0.4)] p-3.5 text-center rounded-sm shadow-sm">
           <p className="text-xs font-mono text-[#62a57f] uppercase tracking-wider mb-1 flex items-center justify-center gap-1.5">
-            <CheckCheck className="w-4 h-4 text-[#4ade80]" />
+            <CheckCheck className="w-4 h-4 text-[#62a57f]" />
             Section Confirmed
           </p>
           <p className="text-sm text-[#f3f0df] font-sans">{message.content}</p>
@@ -32,6 +33,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   }
 
   if (isUser) {
+    if (message.voice) {
+      return (
+        <div className="flex flex-col items-end my-3 animate-fade-in">
+          <VoiceBubble voice={message.voice} timestamp={message.timestamp} />
+          <div className="mt-1 mr-1 flex items-center justify-end gap-1.5 text-[11px] font-mono text-[rgba(243,240,223,0.5)]">
+            <span>{formattedTime}</span>
+            <CheckCheck className="w-3.5 h-3.5 text-[#62a57f]" />
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex justify-end my-2 animate-fade-in">
         <div className="max-w-[85%] sm:max-w-md bg-[#1b2e23] border border-[rgba(78,135,102,0.35)] text-[#f3f0df] px-4 py-3 rounded-sm shadow-sm">

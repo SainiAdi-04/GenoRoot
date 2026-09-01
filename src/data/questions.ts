@@ -15,6 +15,7 @@ export const ALL_QUESTIONS: QuestionConfig[] = [
     max: 99,
     placeholder: "e.g. 24",
     unit: "years old",
+    voiceEligible: true,
   },
   {
     id: "q2",
@@ -212,6 +213,7 @@ export const ALL_QUESTIONS: QuestionConfig[] = [
     prompt: "Which salon treatments did you have, and roughly when?",
     helperText: "e.g. Keratin smoothing 4 months ago, Hair Botox last month.",
     placeholder: "e.g. Keratin smoothing 4 months ago",
+    voiceEligible: true,
   },
   {
     id: "q10_past_6_months",
@@ -305,6 +307,7 @@ export const ALL_QUESTIONS: QuestionConfig[] = [
     prompt: "Please briefly describe the reaction or side effect you experienced:",
     helperText: "Include the product/treatment name if you remember.",
     placeholder: "e.g. Scalp redness and itching with 5% Minoxidil solution",
+    voiceEligible: true,
   },
 
   // Section E - Sample Collection & Consent

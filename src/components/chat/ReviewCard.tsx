@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { IntakeFormData } from "@/types/schema";
-import { CheckCheck, Edit3, ArrowRight, ShieldCheck, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCheck, Edit3, ShieldCheck } from "lucide-react";
 
 interface ReviewCardProps {
   formData: IntakeFormData;
@@ -17,7 +17,6 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   onConfirmSubmit,
   isCompleted = false,
 }) => {
-  const [activeSection, setActiveSection] = useState<string | null>(null);
 
   const sections = [
     {

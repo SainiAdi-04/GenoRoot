@@ -5,6 +5,7 @@ import {
   IntakeFormData,
   QuestionConfig,
 } from "@/types/schema";
+import { parseVoiceTranscript } from "./voiceParser";
 
 export const PRODUCT_CATEGORIES = [
   "OTC/Medicated Shampoos",
@@ -442,12 +443,13 @@ export function determineNextStep(
 export function answerCurrentQuestion(
   state: EngineState,
   answerValue: unknown,
-  questions: QuestionConfig[] = ALL_QUESTIONS
+  questions: QuestionConfig[] = ALL_QUESTIONS,
+  customUserMessage?: ChatMessage
 ): EngineState {
   const currentQ = getCurrentQuestion(state, questions);
   if (!currentQ) return state;
 
-  let updatedFormData: IntakeFormData = { ...state.formData };
+  const updatedFormData: IntakeFormData = { ...state.formData };
   const stepId = currentQ.id;
 
   // Apply value to formData based on step
@@ -683,14 +685,14 @@ export function answerCurrentQuestion(
   }
 
   // Create user message
-  const userMsgText = formatUserAnswer(currentQ, answerValue);
-  const userMsg: ChatMessage = {
-    id: `msg_user_${currentQ.id}_${Date.now()}`,
-    sender: "user",
-    content: userMsgText,
-    timestamp: Date.now(),
-    questionId: currentQ.id,
-  };
+  const userMsg: ChatMessage =
+    customUserMessage || {
+      id: `msg_user_${currentQ.id}_${Date.now()}`,
+      sender: "user",
+      content: formatUserAnswer(currentQ, answerValue),
+      timestamp: Date.now(),
+      questionId: currentQ.id,
+    };
 
   const updatedAnsweredIds = state.answeredQuestionIds.includes(currentQ.id)
     ? state.answeredQuestionIds
@@ -892,5 +894,61 @@ export function formatFullSchemaJson(formData: IntakeFormData) {
     },
   };
 }
+
+export interface VoiceInputPayload {
+  audioUrl?: string;
+  durationSeconds?: number;
+  codemix: string;
+  translate: string;
+  isFallback?: boolean;
+}
+
+export function answerWithVoice(
+  state: EngineState,
+  voiceInput: VoiceInputPayload,
+  questions: QuestionConfig[] = ALL_QUESTIONS
+): EngineState {
+  if (state.phase !== "in_progress" || !state.currentStepId) {
+    return state;
+  }
+
+  const currentQ = getCurrentQuestion(state, questions);
+  if (!currentQ) return state;
+
+  const parseRes = parseVoiceTranscript(currentQ.id, currentQ, voiceInput.translate);
+
+  const userVoiceMsg: ChatMessage = {
+    id: `msg_user_voice_${currentQ.id}_${Date.now()}`,
+    sender: "user",
+    content: voiceInput.codemix,
+    timestamp: Date.now(),
+    questionId: currentQ.id,
+    voice: {
+      audioUrl: voiceInput.audioUrl,
+      durationSeconds: voiceInput.durationSeconds,
+      codemixTranscript: voiceInput.codemix,
+      translateTranscript: voiceInput.translate,
+      isFallback: voiceInput.isFallback,
+    },
+  };
+
+  if (!parseRes.success || parseRes.value === undefined) {
+    const botClarifyMsg: ChatMessage = {
+      id: `msg_bot_clarify_${Date.now()}`,
+      sender: "bot",
+      content: `I heard: "${voiceInput.codemix}". To make sure your records are exact, please enter or select your answer below:`,
+      timestamp: Date.now() + 1,
+      questionId: currentQ.id,
+    };
+
+    return {
+      ...state,
+      messages: [...state.messages, userVoiceMsg, botClarifyMsg],
+    };
+  }
+
+  return answerCurrentQuestion(state, parseRes.value, questions, userVoiceMsg);
+}
+
 
 

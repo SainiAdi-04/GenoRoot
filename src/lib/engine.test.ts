@@ -3,13 +3,11 @@ import {
   createInitialEngineState,
   startStepByStep,
   answerCurrentQuestion,
-  formatUserAnswer,
-  resetEngineState,
   getCurrentQuestion,
   formatFullSchemaJson,
   editQuestion,
+  answerWithVoice,
 } from "./engine";
-import { ALL_QUESTIONS } from "@/data/questions";
 
 describe("Chat Flow Engine - All 16 Questions", () => {
   it("initializes in welcome phase with initial welcome bot message", () => {
@@ -307,5 +305,85 @@ describe("Chat Flow Engine - All 16 Questions", () => {
     expect(state.editingStepId).toBeNull();
     expect(state.currentStepId).toBeNull();
   });
+
+  describe("answerWithVoice seam", () => {
+    it("auto-fills Q1 age from voice and advances to Q2 with voice bubble metadata", () => {
+      let state = createInitialEngineState();
+      state = startStepByStep(state);
+      expect(state.currentStepId).toBe("q1");
+
+      state = answerWithVoice(state, {
+        audioUrl: "blob:http://localhost:3000/audio-123",
+        durationSeconds: 3,
+        codemix: "meri age lagbhag 26 saal hai",
+        translate: "my age is approximately 26 years old",
+      });
+
+      // Age filled
+      expect(state.formData.age_hair_loss_began).toBe(26);
+      // Advances to Q2
+      expect(state.currentStepId).toBe("q2");
+      // Contains user voice message
+      const voiceMsg = state.messages.find((m) => m.sender === "user" && m.voice?.durationSeconds === 3);
+      expect(voiceMsg).toBeDefined();
+      expect(voiceMsg?.voice?.codemixTranscript).toBe("meri age lagbhag 26 saal hai");
+      expect(voiceMsg?.voice?.translateTranscript).toBe("my age is approximately 26 years old");
+      expect(voiceMsg?.voice?.audioUrl).toBe("blob:http://localhost:3000/audio-123");
+    });
+
+    it("handles ambiguous or unparseable voice by showing transcript and staying on question with guidance", () => {
+      let state = createInitialEngineState();
+      state = startStepByStep(state);
+      expect(state.currentStepId).toBe("q1");
+
+      state = answerWithVoice(state, {
+        audioUrl: "blob:http://localhost:3000/audio-456",
+        durationSeconds: 2,
+        codemix: "kuch mahine pehle se",
+        translate: "since a few months ago",
+      });
+
+      // Q1 requires an age number; "since a few months ago" does not give an age
+      expect(state.formData.age_hair_loss_began).toBeUndefined();
+      // Remains on Q1
+      expect(state.currentStepId).toBe("q1");
+      // User message added
+      const userMsg = state.messages.find((m) => m.content === "kuch mahine pehle se");
+      expect(userMsg).toBeDefined();
+      // Bot guidance message added
+      const botMsg = state.messages[state.messages.length - 1];
+      expect(botMsg.sender).toBe("bot");
+      expect(botMsg.content).toContain("kuch mahine pehle se");
+      expect(botMsg.content).toContain("please enter or select");
+    });
+
+    it("auto-fills free text questions (Q11 salon detail) with voice note", () => {
+      let state = createInitialEngineState();
+      state = startStepByStep(state);
+      // Simulate state at q11_salon_detail
+      state.currentStepId = "q11_salon_detail";
+      state.formData = {
+        ...state.formData,
+        habits: {
+          smoking: false,
+          alcohol: false,
+          hard_water: false,
+          hair_wash_frequency: "Daily",
+          heating_tools_styling_chemicals: false,
+          salon_treatments: true,
+        },
+      };
+
+      state = answerWithVoice(state, {
+        durationSeconds: 4,
+        codemix: "chaar mahine pehle keratin smoothing karwayi thi",
+        translate: "had keratin smoothing done 4 months ago",
+      });
+
+      expect(state.formData.habits?.salon_treatment_detail).toBe("had keratin smoothing done 4 months ago");
+      expect(state.currentStepId).toBe("q10_past_6_months");
+    });
+  });
 });
+
 

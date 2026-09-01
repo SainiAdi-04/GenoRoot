@@ -2,18 +2,23 @@
 
 import React, { useState } from "react";
 import { ArrowRight } from "lucide-react";
-import { QuestionConfig } from "@/types/schema";
+import { QuestionConfig, VoiceInputPayload } from "@/types/schema";
+import { VoiceInputButton } from "./VoiceInputButton";
 
 interface NumberInputProps {
   question: QuestionConfig;
   onSubmit: (value: number) => void;
   defaultValue?: number | null;
+  onVoiceSubmitted?: (payload: VoiceInputPayload) => void;
+  onProcessingChange?: (isProcessing: boolean) => void;
 }
 
 export const NumberInput: React.FC<NumberInputProps> = ({
   question,
   onSubmit,
   defaultValue,
+  onVoiceSubmitted,
+  onProcessingChange,
 }) => {
   const [val, setVal] = useState<string>(
     defaultValue !== undefined && defaultValue !== null ? String(defaultValue) : ""
@@ -52,6 +57,25 @@ export const NumberInput: React.FC<NumberInputProps> = ({
         <p className="text-xs text-[rgba(243,240,223,0.6)] mb-3 font-sans">
           {question.helperText}
         </p>
+      )}
+
+      {/* Voice Input (Sarvam STT) Option */}
+      {onVoiceSubmitted && (
+        <div className="mb-4">
+          <VoiceInputButton
+            questionId={question.id}
+            onVoiceSubmitted={onVoiceSubmitted}
+            onProcessingChange={onProcessingChange}
+            label="Speak your age in Hinglish / English"
+          />
+          <div className="relative flex py-2.5 items-center">
+            <div className="flex-grow border-t border-[rgba(243,240,223,0.1)]"></div>
+            <span className="flex-shrink mx-3 text-[10px] font-mono text-[rgba(243,240,223,0.35)] uppercase tracking-wider">
+              or select / type
+            </span>
+            <div className="flex-grow border-t border-[rgba(243,240,223,0.1)]"></div>
+          </div>
+        </div>
       )}
 
       {/* Quick Suggestions */}

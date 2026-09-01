@@ -242,13 +242,13 @@ Drawn from motivational interviewing (OARS) and clinical UX research:
 - **Exit criteria:** All 16 questions are navigable as a chat flow on mobile. Core engine tested with `bun test`. No AI yet.
 
 ### Phase 2 — Voice + AI (Sep 1, morning) · ~3-4h
-- [ ] Sarvam STT integration (`saaras:v3`, codemix + translate modes)
-- [ ] Voice recording UI (WhatsApp-style mic button, waveform, playback)
+- [x] Sarvam STT integration (`saaras:v3`, codemix + translate modes)
+- [x] Voice recording UI (WhatsApp-style mic button, waveform, playback)
 - [ ] `sarvam-105b` structured extraction (voice note → JSON fields)
 - [ ] Voice cascade UI (auto-fill cards, confirm-all)
 - [ ] Gender inference from transcript + casual confirmation
 - [ ] Brand resolver dictionary + LLM mapping
-- [ ] API routes in Next.js (hide Sarvam API key)
+- [x] API routes in Next.js (hide Sarvam API key)
 - **Exit criteria:** A voice note fills multiple fields. Brand names resolve.
 
 ### Phase 3 — Differentiators (Sep 1, afternoon) · ~2-3h

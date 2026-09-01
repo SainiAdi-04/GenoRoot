@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   answerCurrentQuestion,
+  answerWithVoice,
   createInitialEngineState,
   editQuestion,
   getCurrentQuestion,
@@ -14,7 +15,7 @@ import {
   loadStateFromStorage,
   saveStateToStorage,
 } from "@/lib/storage";
-import { EngineState } from "@/types/schema";
+import { EngineState, VoiceInputPayload } from "@/types/schema";
 import { ChatHeader } from "./ChatHeader";
 import { MessageBubble } from "./MessageBubble";
 import { WelcomeCard } from "./WelcomeCard";
@@ -35,6 +36,7 @@ export const ChatContainer: React.FC = () => {
     return createInitialEngineState();
   });
   const [isDebugOpen, setIsDebugOpen] = useState<boolean>(false);
+  const [isTranscribing, setIsTranscribing] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   // Persist state to localStorage on update
@@ -53,6 +55,10 @@ export const ChatContainer: React.FC = () => {
 
   const handleAnswer = (val: unknown) => {
     setState((prev) => answerCurrentQuestion(prev, val));
+  };
+
+  const handleVoiceSubmit = (payload: VoiceInputPayload) => {
+    setState((prev) => answerWithVoice(prev, payload));
   };
 
   const handleEditField = (stepId: string) => {
@@ -113,6 +119,10 @@ export const ChatContainer: React.FC = () => {
                 <NumberInput
                   question={currentQ}
                   onSubmit={(num) => handleAnswer(num)}
+                  onVoiceSubmitted={
+                    currentQ.voiceEligible ? handleVoiceSubmit : undefined
+                  }
+                  onProcessingChange={setIsTranscribing}
                   defaultValue={
                     state.formData[currentQ.key as keyof typeof state.formData] as
                       | number
@@ -149,6 +159,10 @@ export const ChatContainer: React.FC = () => {
                 <TextInput
                   question={currentQ}
                   onSubmit={(text) => handleAnswer(text)}
+                  onVoiceSubmitted={
+                    currentQ.voiceEligible ? handleVoiceSubmit : undefined
+                  }
+                  onProcessingChange={setIsTranscribing}
                   defaultValue={
                     state.formData[currentQ.key as keyof typeof state.formData] as
                       | string
@@ -167,6 +181,22 @@ export const ChatContainer: React.FC = () => {
                   }}
                 />
               )}
+            </div>
+          )}
+
+          {/* Typing Indicator while transcribing voice note (cream dots on dark surface) */}
+          {isTranscribing && (
+            <div className="flex justify-start my-2 animate-fade-in">
+              <div className="bg-[#16201b] border border-[rgba(243,240,223,0.18)] px-4 py-3 rounded-sm flex items-center gap-3 shadow-sm">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#f3f0df] animate-bounce" />
+                  <span className="w-2 h-2 rounded-full bg-[#f3f0df] animate-bounce [animation-delay:0.2s]" />
+                  <span className="w-2 h-2 rounded-full bg-[#f3f0df] animate-bounce [animation-delay:0.4s]" />
+                </div>
+                <span className="text-xs font-mono text-[rgba(243,240,223,0.7)] tracking-wide">
+                  Dr. Sharma is transcribing…
+                </span>
+              </div>
             </div>
           )}
 

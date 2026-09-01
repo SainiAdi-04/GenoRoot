@@ -30,6 +30,7 @@ export interface QuestionConfig {
   max?: number;
   placeholder?: string;
   unit?: string;
+  voiceEligible?: boolean;
 }
 
 export interface IntakeFormData {
@@ -83,6 +84,22 @@ export interface IntakeFormData {
 
 export type MessageSender = "bot" | "user" | "system";
 
+export interface VoiceMetadata {
+  audioUrl?: string;
+  durationSeconds?: number;
+  codemixTranscript?: string;
+  translateTranscript?: string;
+  isFallback?: boolean;
+}
+
+export interface VoiceInputPayload {
+  audioUrl?: string;
+  durationSeconds: number;
+  codemix: string;
+  translate: string;
+  isFallback?: boolean;
+}
+
 export interface ChatMessage {
   id: string;
   sender: MessageSender;
@@ -90,6 +107,7 @@ export interface ChatMessage {
   timestamp: number;
   questionId?: string;
   isTransition?: boolean;
+  voice?: VoiceMetadata;
   metadata?: Record<string, unknown>;
 }
 

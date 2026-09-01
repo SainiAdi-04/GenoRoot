@@ -2,18 +2,23 @@
 
 import React, { useState } from "react";
 import { ArrowRight } from "lucide-react";
-import { QuestionConfig } from "@/types/schema";
+import { QuestionConfig, VoiceInputPayload } from "@/types/schema";
+import { VoiceInputButton } from "./VoiceInputButton";
 
 interface TextInputProps {
   question: QuestionConfig;
   onSubmit: (value: string) => void;
   defaultValue?: string | null;
+  onVoiceSubmitted?: (payload: VoiceInputPayload) => void;
+  onProcessingChange?: (isProcessing: boolean) => void;
 }
 
 export const TextInput: React.FC<TextInputProps> = ({
   question,
   onSubmit,
   defaultValue,
+  onVoiceSubmitted,
+  onProcessingChange,
 }) => {
   const [text, setText] = useState<string>(defaultValue || "");
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +47,25 @@ export const TextInput: React.FC<TextInputProps> = ({
         <p className="text-xs text-[rgba(243,240,223,0.6)] mb-3 font-sans">
           {question.helperText}
         </p>
+      )}
+
+      {/* Voice Input (Sarvam STT) Option */}
+      {onVoiceSubmitted && (
+        <div className="mb-4">
+          <VoiceInputButton
+            questionId={question.id}
+            onVoiceSubmitted={onVoiceSubmitted}
+            onProcessingChange={onProcessingChange}
+            label="Speak your response in Hinglish / English"
+          />
+          <div className="relative flex py-2.5 items-center">
+            <div className="flex-grow border-t border-[rgba(243,240,223,0.1)]"></div>
+            <span className="flex-shrink mx-3 text-[10px] font-mono text-[rgba(243,240,223,0.35)] uppercase tracking-wider">
+              or type below
+            </span>
+            <div className="flex-grow border-t border-[rgba(243,240,223,0.1)]"></div>
+          </div>
+        </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-3">
