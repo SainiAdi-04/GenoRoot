@@ -34,7 +34,7 @@ export const VoiceConfirmationCard: React.FC<VoiceConfirmationCardProps> = ({
         <div className="flex items-center gap-2.5">
           <span className="w-3 h-3 rounded-full bg-[#62a57f] animate-pulse" />
           <span className="text-xs font-mono tracking-wider uppercase text-[#62a57f] font-semibold">
-            Voice Confirmation • Golden Rule
+            Voice Confirmation
           </span>
         </div>
         <button
