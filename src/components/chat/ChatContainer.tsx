@@ -91,6 +91,7 @@ export const ChatContainer: React.FC = () => {
         tts.speak(currentQ.prompt);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentQ?.id, state.phase, isTtsEnabled]);
 
   const handleStartStepByStep = () => {

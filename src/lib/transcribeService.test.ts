@@ -28,10 +28,13 @@ describe("transcribeService seam", () => {
     expect(q14Fallback.codemix).toContain("minoxidil");
   });
 
-  it("formats audio duration correctly", () => {
+  it("formats audio duration correctly and guards against Infinity and NaN", () => {
     expect(formatAudioDuration(0)).toBe("0:00");
     expect(formatAudioDuration(5)).toBe("0:05");
     expect(formatAudioDuration(65)).toBe("1:05");
+    expect(formatAudioDuration(Infinity)).not.toContain("Infinity");
+    expect(formatAudioDuration(Infinity)).not.toContain("NaN");
+    expect(formatAudioDuration(NaN)).not.toContain("NaN");
   });
 
   it("calls Sarvam API with dual modes (codemix and translate) when apiKey is provided", async () => {

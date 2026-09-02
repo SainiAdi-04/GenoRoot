@@ -177,6 +177,34 @@ describe("voiceParser seam", () => {
       const outNone = extractFamilyHistory("koi nahi, none of them");
       expect(outNone).toEqual(["No known family history"]);
     });
+
+    it("catches 'डैड' and 'फादर' in Hindi Devanagari for Q3 Family History", () => {
+      const transcript = "मेरे डैड को हेयर फॉल की प्रॉब्लम थी";
+      const res = parseVoiceTranscript("q3", q3, transcript);
+      expect(res.success).toBe(true);
+      expect(res.value as string[]).toContain("Father had hair loss");
+    });
+
+    it("catches 'दादाजी' and 'नानाजी' (paternal/maternal grandfather) in Hindi for Q3", () => {
+      const transcript = "मेरे दादाजी को बाल झड़ने की समस्या थी";
+      const res = parseVoiceTranscript("q3", q3, transcript);
+      expect(res.success).toBe(true);
+      expect(res.value as string[]).toContain("Father had hair loss");
+    });
+
+    it("catches 'भैया' and 'दीदी' in Hindi for Q3 Siblings", () => {
+      const transcript = "मेरे भैया के बाल झड़ रहे हैं";
+      const res = parseVoiceTranscript("q3", q3, transcript);
+      expect(res.success).toBe(true);
+      expect(res.value as string[]).toContain("Siblings with thinning or baldness");
+    });
+
+    it("catches the spoken transcript where 'dad' was transcribed phonetically as 'दर्द'", () => {
+      const transcript = "मुझे लगता है कि मुझे दर्द की समस्या है चोरी के कारण कुछ हो चुकी है मुझे ऐसा लगता है";
+      const res = parseVoiceTranscript("q3", q3, transcript);
+      expect(res.success).toBe(true);
+      expect(res.value as string[]).toContain("Father had hair loss");
+    });
   });
 
   describe("Screen 7: Pattern (Multi-select Keyword Matcher)", () => {

@@ -44,8 +44,8 @@ describe("Sarvam TTS Service seam", () => {
   });
 
   it("chooses language code hi-IN for Hinglish / Devanagari text, en-IN for English text", async () => {
-    const calls: any[] = [];
-    const mockFetch = mock(async (_url: any, init?: RequestInit) => {
+    const calls: Array<Record<string, unknown>> = [];
+    const mockFetch = mock(async (_url: RequestInfo | URL, init?: RequestInit) => {
       calls.push(JSON.parse(init?.body as string));
       return new Response(JSON.stringify({ audios: ["mockAudio"] }), { status: 200 });
     });
