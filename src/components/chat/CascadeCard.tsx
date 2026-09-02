@@ -74,7 +74,7 @@ export const CascadeCard: React.FC<CascadeCardProps> = ({
       </div>
 
       <h3 className="text-xl sm:text-2xl font-serif text-[#f3f0df] tracking-tight mb-2">
-        🎉 {fields.length} details auto-filled from your voice note!
+        {fields.length} details auto-filled from your voice note
       </h3>
       <p className="text-xs sm:text-sm text-[rgba(243,240,223,0.7)] mb-5">
         Extracted directly from your Hinglish voice note. Tap any chip to edit, or confirm all in one tap:

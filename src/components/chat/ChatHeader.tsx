@@ -78,8 +78,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                   title="Select Sarvam AI Voice (Bulbul v3)"
                 >
                   <option value="shubh">Shubh (Hinglish Male)</option>
-                  <option value="ishita">Ishita (Indian English Female ★)</option>
-                  <option value="priya">Priya (Hinglish Female ★)</option>
+                  <option value="ishita">Ishita (Indian English Female)</option>
+                  <option value="priya">Priya (Hinglish Female)</option>
                   <option value="ratan">Ratan (Indian English Male)</option>
                 </select>
               )}

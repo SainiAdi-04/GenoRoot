@@ -366,9 +366,9 @@ export const SECTION_D_QUESTIONS = ALL_QUESTIONS.filter((q) => q.sectionId === "
 export const SECTION_E_QUESTIONS = ALL_QUESTIONS.filter((q) => q.sectionId === "E");
 
 export const WELCOME_MESSAGE = {
-  text: "Hi! 👋 I'm here to help your doctor prepare for your consultation. You can tell me about your hair in your own words, or we'll go through it step by step.",
+  text: "Hi! I'm here to help your doctor prepare for your consultation. You can tell me about your hair in your own words, or we'll go through it step by step.",
   buttons: [
-    { id: "voice", label: "🎙️ Record voice note", disabled: true, note: "Coming in next phase" },
-    { id: "step-by-step", label: "➡️ Let's go step by step", disabled: false },
+    { id: "voice", label: "Record voice note", disabled: true, note: "Coming in next phase" },
+    { id: "step-by-step", label: "Let's go step by step", disabled: false },
   ],
 };

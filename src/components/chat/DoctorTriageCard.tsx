@@ -6,6 +6,7 @@ import {
   Stethoscope,
   AlertTriangle,
   AlertOctagon,
+  Ban,
   Sparkles,
   ChevronRight,
   ShieldCheck,
@@ -36,7 +37,7 @@ export const DoctorTriageCard: React.FC<DoctorTriageCardProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-mono uppercase tracking-wider text-[#a7f3d0]">
-                Sarvam 105B Intelligence
+                Clinical AI Briefing
               </span>
               <span className="inline-block w-2 h-2 rounded-full bg-[#4ade80] animate-ping" />
             </div>
@@ -146,9 +147,7 @@ export const DoctorTriageCard: React.FC<DoctorTriageCardProps> = ({
                   key={idx}
                   className="flex items-start gap-2.5 px-3.5 py-2.5 bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.25)] rounded-sm text-xs font-sans text-[#fee2e2] leading-relaxed"
                 >
-                  <span className="font-mono text-[#ef4444] font-bold text-xs shrink-0 mt-0.5">
-                    ⚠️
-                  </span>
+                  <AlertTriangle className="w-3.5 h-3.5 text-[#ef4444] shrink-0 mt-0.5" />
                   <span>{flag}</span>
                 </div>
               ))}
@@ -169,9 +168,7 @@ export const DoctorTriageCard: React.FC<DoctorTriageCardProps> = ({
                   key={idx}
                   className="flex items-start gap-2.5 px-3.5 py-2.5 bg-[rgba(245,158,11,0.08)] border border-[rgba(245,158,11,0.25)] rounded-sm text-xs font-sans text-[#fef3c7] leading-relaxed"
                 >
-                  <span className="font-mono text-[#f59e0b] font-bold text-xs shrink-0 mt-0.5">
-                    🚫
-                  </span>
+                  <Ban className="w-3.5 h-3.5 text-[#f59e0b] shrink-0 mt-0.5" />
                   <span>{contra}</span>
                 </div>
               ))}

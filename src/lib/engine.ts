@@ -1235,7 +1235,7 @@ export function applyVoiceCascade(
   newMessages.push({
     id: `msg_bot_cascade_announcement_${Date.now()}`,
     sender: "bot",
-    content: `🎉 ${fields.length} details auto-filled from your voice note! Confirm all in one tap or tap any item to edit:`,
+    content: `${fields.length} details auto-filled from your voice note. Confirm all in one tap or tap any item to edit:`,
     timestamp: Date.now() + 1,
   });
 

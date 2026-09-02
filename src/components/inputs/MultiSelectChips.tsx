@@ -125,7 +125,7 @@ export const MultiSelectChips: React.FC<MultiSelectChipsProps> = ({
             questionId={question.id}
             onVoiceSubmitted={onVoiceSubmitted}
             onProcessingChange={onProcessingChange}
-            label="🎙️ Speak your answers (Voice-first)"
+            label="Speak your answers (Voice-first)"
           />
         </div>
       )}

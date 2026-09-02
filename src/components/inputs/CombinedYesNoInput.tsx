@@ -53,7 +53,7 @@ export const CombinedYesNoInput: React.FC<CombinedYesNoInputProps> = ({
             questionId={question.id}
             onVoiceSubmitted={onVoiceSubmitted}
             onProcessingChange={onProcessingChange}
-            label="🎙️ Speak: 'Yes to acne' or 'Neither'"
+            label="Speak: 'Yes to acne' or 'Neither'"
           />
         </div>
       )}

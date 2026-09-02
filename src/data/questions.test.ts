@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { ALL_QUESTIONS } from "./questions";
+import { ALL_QUESTIONS, WELCOME_MESSAGE } from "./questions";
 import { getCurrentQuestion, getMicroAffirmation, createInitialEngineState } from "@/lib/engine";
 
 describe("Plain-Language Clinical Framing for ALL_QUESTIONS & Dynamic Engine Copy", () => {
@@ -137,5 +137,23 @@ describe("Plain-Language Clinical Framing for ALL_QUESTIONS & Dynamic Engine Cop
     expect(q3Values).toContain("Mother had hair loss");
     expect(q3Values).toContain("Siblings with thinning or baldness");
     expect(q3Values).toContain("No known family history");
+  });
+
+  it("does not contain emojis in questions, welcome message, or autofill copy", () => {
+    const emojiRegex = /[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/u;
+
+    for (const q of ALL_QUESTIONS) {
+      expect(emojiRegex.test(q.prompt)).toBe(false);
+      if (q.helperText) expect(emojiRegex.test(q.helperText)).toBe(false);
+      q.options?.forEach((o) => {
+        expect(emojiRegex.test(o.label)).toBe(false);
+        if (o.description) expect(emojiRegex.test(o.description)).toBe(false);
+      });
+    }
+
+    expect(emojiRegex.test(WELCOME_MESSAGE.text)).toBe(false);
+    WELCOME_MESSAGE.buttons.forEach((b) => {
+      expect(emojiRegex.test(b.label)).toBe(false);
+    });
   });
 });

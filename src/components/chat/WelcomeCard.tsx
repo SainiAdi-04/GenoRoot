@@ -626,7 +626,7 @@ export const WelcomeCard: React.FC<WelcomeCardProps> = ({
       </h2>
 
       <p className="text-sm sm:text-base text-[rgba(243,240,223,0.85)] leading-relaxed mb-6 font-sans">
-        Hi! 👋 I&apos;m here to help your doctor prepare for your consultation.
+        Hi! I&apos;m here to help your doctor prepare for your consultation.
         You can speak naturally in Hindi, English, or Hinglish — or we can go
         through your intake step by step.
       </p>
@@ -681,7 +681,7 @@ export const WelcomeCard: React.FC<WelcomeCardProps> = ({
             className="flex-1 flex items-center justify-center gap-2 px-5 py-3.5 bg-[#1b2721] hover:bg-[#24342c] active:bg-[#16201b] border border-[#62a57f] text-[#f3f0df] rounded-sm text-sm font-medium transition-all shadow-sm group"
           >
             <Mic className="w-4 h-4 text-[#62a57f] group-hover:scale-110 transition-transform" />
-            <span>🎙️ Record voice note</span>
+            <span>Record voice note</span>
             <span className="px-1.5 py-0.5 text-[9px] font-mono tracking-wider bg-[rgba(78,135,102,0.2)] text-[#62a57f] border border-[rgba(78,135,102,0.4)] rounded">
               VOICE
             </span>
