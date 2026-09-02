@@ -376,14 +376,14 @@ export function getRawNextStep(
       return {
         nextStepId: "q5",
         transitionMessage:
-          "✓ Personal history recorded. Now let's look at health and hormonal factors that directly influence hair.",
+          "✓ Thanks for sharing that background. Now let's look at health and hormonal factors that directly influence hair.",
       };
     case "q5":
       if (inferredSex === "male") {
         return {
           nextStepId: "q8_q9_skin",
           transitionMessage:
-            "✓ Medical background recorded. Next, two quick checks on your skin and scalp oiliness:",
+            "✓ Got it. Next, two quick checks on your skin and scalp oiliness:",
         };
       }
       return { nextStepId: "q6_q7_hormonal" };
@@ -393,7 +393,7 @@ export function getRawNextStep(
       return {
         nextStepId: "q11_smoking",
         transitionMessage:
-          "✓ Health markers saved. Now a few questions about your lifestyle — this helps us spot underlying triggers.",
+          "✓ Thanks for confirming. Now a few questions about your lifestyle — this helps us spot underlying triggers.",
       };
     case "q11_smoking":
       return { nextStepId: "q11_alcohol" };
@@ -420,7 +420,7 @@ export function getRawNextStep(
       return {
         nextStepId: "q12_products_select",
         transitionMessage:
-          "✓ Lifestyle logged. Now let's review any past treatments or products you've tried.",
+          "✓ Thanks. Now let's review any past treatments or products you've tried.",
       };
     case "q12_products_select": {
       const selectedProducts = (updatedFormData.products || []).filter((p) => p.used);
@@ -524,7 +524,7 @@ export function getRawNextStep(
     return {
       nextStepId: "q15_sample_type",
       transitionMessage:
-        "✓ Treatments recorded. Final step — sample collection preference and consent for your personalized analysis.",
+        "✓ Thank you. Final step — sample collection preference and consent for your personalized analysis.",
     };
   }
 
@@ -532,7 +532,7 @@ export function getRawNextStep(
     return {
       nextStepId: "q15_sample_type",
       transitionMessage:
-        "✓ Treatments recorded. Final step — sample collection preference and consent for your personalized analysis.",
+        "✓ Thank you. Final step — sample collection preference and consent for your personalized analysis.",
     };
   }
 
@@ -546,7 +546,7 @@ export function getRawNextStep(
       nextStepId: null,
       isCompleted: true,
       transitionMessage:
-        "✓ Your complete 16-question clinical intake is ready! Review your summary below or edit any field before submitting to Dr. Sharma.",
+        "✓ Your complete 16-question clinical intake is ready! Review your summary below or edit any field before submitting for your consultation.",
     };
   }
 
@@ -559,7 +559,7 @@ export function getMicroAffirmation(
 ): string | null {
   switch (prevStepId) {
     case "q1":
-      return "Thank you. Establishing onset age gives Dr. Sharma crucial baseline context for your progression curve.";
+      return "Thank you for sharing that. Knowing when changes started gives your doctor helpful context.";
     case "q_biological_sex": {
       const val = String(answerValue);
       if (val === "male") {
@@ -581,31 +581,31 @@ export function getMicroAffirmation(
       return "Understood. Hair thinning over a year gives your doctor key clues about long-term patterns.";
     }
     case "q3":
-      return "Family history recorded. Genetics play an important role in hair density.";
+      return "Got it. Family genetics often play a big role in hair density.";
     case "q4":
-      return "Scalp pattern noted for your doctor's review.";
+      return "Thanks for describing what you're noticing on your scalp.";
     case "q5":
-      return "Health conditions logged. Overall health directly affects how nutrients reach your hair roots.";
+      return "Got it. Overall health directly affects how nutrients reach your hair roots.";
     case "q6_q7_hormonal":
-      return "Hormonal details recorded.";
+      return "Understood. That's really helpful context for your hormone balance.";
     case "q8_q9_skin":
-      return "Skin and scalp checks logged.";
+      return "Got it. Skin and scalp changes give great clues about your natural oil balance.";
     case "q11_smoking":
-      return "Lifestyle details recorded. Good blood flow to your scalp is vital for healthy hair roots.";
+      return "Thank you for sharing. Good blood flow to your scalp is vital for healthy hair roots.";
     case "q11_hard_water":
-      return "Water source recorded for your scalp review.";
+      return "Got it. Water quality is an important factor for hair texture and breakage.";
     case "q11_hair_wash_frequency":
-      return "Washing frequency noted.";
+      return "Understood. That helps assess your scalp's natural balance.";
     case "q10_past_6_months":
-      return "Stress and health events logged. High stress or illness can often explain sudden shedding spikes.";
+      return "Thank you for letting us know. High stress or illness can often explain sudden shedding phases.";
     case "q12_products_select":
-      return "Treatment history saved. This helps your doctor avoid suggesting products that didn't work for you.";
+      return "Got it. Knowing what you've tried helps your doctor avoid suggesting what didn't work.";
     case "q13_procedures_gate":
-      return "Procedure history logged.";
+      return "Understood. Your procedure history helps your doctor plan next steps.";
     case "q14_side_effects_gate":
-      return "Past reactions and side effects recorded.";
+      return "Important to know. Your doctor will make sure to avoid anything that irritated your scalp.";
     case "q15_sample_type":
-      return "Sample preference saved.";
+      return "Got it. We'll set up your preferred testing method.";
     default:
       return null;
   }

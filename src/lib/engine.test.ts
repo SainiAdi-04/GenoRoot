@@ -59,7 +59,7 @@ describe("Chat Flow Engine - All 16 Questions", () => {
     expect(currentQ?.id).toBe("q5");
 
     // Check transition message exists
-    const transMsg = state.messages.find((m) => m.isTransition && m.content.includes("Personal history recorded"));
+    const transMsg = state.messages.find((m) => m.isTransition && m.content.includes("health and hormonal factors"));
     expect(transMsg).toBeDefined();
   });
 

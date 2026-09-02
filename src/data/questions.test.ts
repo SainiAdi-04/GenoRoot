@@ -89,10 +89,15 @@ describe("Plain-Language Clinical Framing for ALL_QUESTIONS & Dynamic Engine Cop
       "q15_sample_type",
     ];
 
+    const roboticPhrases = ["recorded", "logged"];
+
     for (const key of questionKeys) {
       const affirmation = getMicroAffirmation(key, "dummy answer")?.toLowerCase() ?? "";
       for (const phrase of forbiddenPhrases) {
         expect(affirmation).not.toContain(phrase.toLowerCase());
+      }
+      for (const word of roboticPhrases) {
+        expect(affirmation).not.toContain(word);
       }
     }
   });
