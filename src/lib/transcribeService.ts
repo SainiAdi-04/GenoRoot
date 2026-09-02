@@ -20,6 +20,9 @@ const SARVAM_STT_ENDPOINT = "https://api.sarvam.ai/speech-to-text";
 const DEFAULT_TIMEOUT_MS = 15000;
 
 export function formatAudioDuration(totalSeconds: number): string {
+  if (!totalSeconds || !isFinite(totalSeconds) || isNaN(totalSeconds) || totalSeconds < 0) {
+    return "0:00";
+  }
   const mins = Math.floor(totalSeconds / 60);
   const secs = Math.floor(totalSeconds % 60);
   return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
@@ -81,49 +84,83 @@ async function callSarvamSTTMode(
   mode: "codemix" | "translate",
   apiKey: string,
   fetchFn: typeof fetch,
-  timeoutMs: number = DEFAULT_TIMEOUT_MS
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+  primaryModel: "saaras:v3" | "saaras:v4" = "saaras:v3"
 ): Promise<{ transcript: string; languageCode?: string }> {
   const { cleanBlob, filename } = sanitizeAudioBlobForSarvam(audioBlobOrFile);
-  const formData = new FormData();
-  formData.append("file", cleanBlob, filename);
-  formData.append("model", "saaras:v3");
-  formData.append("mode", mode);
-  formData.append("language_code", "unknown");
 
-  // Cross-runtime timeout signal
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const attemptCall = async (model: string, modeOverride?: string) => {
+    const formData = new FormData();
+    formData.append("file", cleanBlob, filename);
+    formData.append("model", model);
+    formData.append("mode", modeOverride || mode);
+    formData.append("language_code", "hi-IN");
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const res = await fetchFn(SARVAM_STT_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "api-subscription-key": apiKey,
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: formData,
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => "");
+        let parsedError = errorText;
+        try {
+          const json = JSON.parse(errorText);
+          parsedError = json?.error?.message || json?.message || errorText;
+        } catch {
+          // raw
+        }
+        throw new Error(`Sarvam STT (${model}:${modeOverride || mode}) error ${res.status}: ${parsedError || res.statusText}`);
+      }
+
+      const data = (await res.json()) as { transcript?: string; language_code?: string };
+      return {
+        transcript: (data.transcript || "").trim(),
+        languageCode: data.language_code,
+      };
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  };
 
   try {
-    const res = await fetchFn(SARVAM_STT_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "api-subscription-key": apiKey,
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: formData,
-      signal: controller.signal,
-    });
-
-    if (!res.ok) {
-      const errorText = await res.text().catch(() => "");
-      let parsedError = errorText;
-      try {
-        const json = JSON.parse(errorText);
-        parsedError = json?.error?.message || json?.message || errorText;
-      } catch {
-        // use raw text
-      }
-      throw new Error(`Sarvam STT (${mode}) error ${res.status}: ${parsedError || res.statusText}`);
+    const res1 = await attemptCall(primaryModel);
+    if (res1.transcript) {
+      return res1;
     }
 
-    const data = (await res.json()) as { transcript?: string; language_code?: string };
-    return {
-      transcript: (data.transcript || "").trim(),
-      languageCode: data.language_code,
-    };
-  } finally {
-    clearTimeout(timeoutId);
+    // If codemix mode returned empty transcript, try standard transcribe mode
+    if (mode === "codemix") {
+      try {
+        const resAlt = await attemptCall(primaryModel, "transcribe");
+        if (resAlt.transcript) {
+          return resAlt;
+        }
+      } catch {
+        // keep res1
+      }
+    }
+
+    return res1;
+  } catch (err: unknown) {
+    if (primaryModel === "saaras:v4") {
+      // Fallback safely to saaras:v3
+      try {
+        return await attemptCall("saaras:v3");
+      } catch {
+        // rethrow original error
+      }
+    }
+    throw err;
   }
 }
 

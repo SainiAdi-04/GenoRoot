@@ -3,7 +3,6 @@ import {
   getTriageProvider,
   MockTriageProvider,
   SarvamTriageProvider,
-  DoctorTriageBriefing,
 } from "./triageService";
 import { IntakeFormData } from "@/types/schema";
 

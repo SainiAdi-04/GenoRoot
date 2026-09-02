@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Mic, Square, X, AlertCircle } from "lucide-react";
 import { VoiceInputPayload } from "@/types/schema";
 import { formatAudioDuration } from "@/lib/transcribeService";
+import { tts } from "@/lib/ttsService";
 
 export interface VoiceInputButtonProps {
   questionId: string;
@@ -60,7 +61,9 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
     return "";
   };
 
-  const startRecording = async () => {
+  const handleStartRecording = async () => {
+    // Barge-in support: stop any active speech when user begins speaking
+    tts.stop();
     setErrorMessage(null);
 
     if (
@@ -73,7 +76,13 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
       streamRef.current = stream;
 
       const mimeType = getMimeType();
@@ -89,7 +98,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
       };
 
       mediaRecorder.onstop = async () => {
-        const elapsedMs = Date.now() - startTimeRef.current;
+        const elapsedMs = performance.now() - startTimeRef.current;
         if (elapsedMs < 600) {
           if (streamRef.current) {
             streamRef.current.getTracks().forEach((track) => track.stop());
@@ -100,10 +109,9 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
           return;
         }
 
-        const rawMime = mimeType || "audio/webm";
-        const cleanMime = rawMime.includes("mp4") || rawMime.includes("aac") ? "audio/mp4" : "audio/webm";
+        const rawMime = mimeType || "audio/webm;codecs=opus";
         const audioBlob = new Blob(chunksRef.current, {
-          type: cleanMime,
+          type: rawMime,
         });
 
         if (streamRef.current) {
@@ -112,14 +120,27 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
         }
 
         const finalDuration = Math.max(1, durationRef.current);
-        const audioUrl = URL.createObjectURL(audioBlob);
+        let audioUrl = "";
+        try {
+          audioUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve((reader.result as string) || "");
+            reader.onerror = () => resolve("");
+            reader.readAsDataURL(audioBlob);
+          });
+        } catch {
+          audioUrl = "";
+        }
+        if (!audioUrl) {
+          audioUrl = URL.createObjectURL(audioBlob);
+        }
 
         setStatus("transcribing");
         onProcessingChange?.(true);
 
         try {
           const formData = new FormData();
-          const ext = cleanMime.includes("mp4") ? "mp4" : "webm";
+          const ext = rawMime.includes("mp4") ? "mp4" : "webm";
           formData.append("file", audioBlob, `speech.${ext}`);
           formData.append("questionId", questionId);
 
@@ -155,8 +176,10 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
         }
       };
 
+      mediaRecorder.onstart = () => {
+        startTimeRef.current = performance.now();
+      };
       mediaRecorder.start(250);
-      startTimeRef.current = Date.now();
       durationRef.current = 0;
       setStatus("recording");
       setDuration(0);
@@ -164,6 +187,9 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
       timerRef.current = setInterval(() => {
         durationRef.current += 1;
         setDuration(durationRef.current);
+        if (durationRef.current >= 28) {
+          stopRecording();
+        }
       }, 1000);
     } catch (err: unknown) {
       const msg =
@@ -181,6 +207,11 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
       timerRef.current = null;
     }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      try {
+        mediaRecorderRef.current.requestData();
+      } catch {
+        // safety
+      }
       mediaRecorderRef.current.stop();
     }
   };
@@ -209,7 +240,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
     if (status === "recording") {
       stopRecording();
     } else if (status === "idle") {
-      startRecording();
+      handleStartRecording();
     }
   };
 
@@ -246,12 +277,12 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#ef4444] animate-ping" />
                 <span className="text-xs font-mono text-[#f3f0df] font-medium tracking-wide">
-                  Recording • {formatAudioDuration(duration)}
+                  Recording • {formatAudioDuration(duration)} / 0:28
                 </span>
               </div>
             ) : status === "transcribing" ? (
               <span className="text-xs font-sans text-[#62a57f]">
-                Transcribing voice note...
+                Transcribing voice note…
               </span>
             ) : (
               <span className="text-xs font-sans text-[rgba(243,240,223,0.85)]">
@@ -261,8 +292,8 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
 
             <span className="text-[10px] font-mono text-[rgba(243,240,223,0.45)]">
               {status === "recording"
-                ? "Tap mic again to stop & finish"
-                : "Powered by Sarvam saaras:v3"}
+                ? "Tap mic to finish (Auto-stops at 28s)"
+                : "Speak in English, Hindi, or Hinglish"}
             </span>
           </div>
         </div>

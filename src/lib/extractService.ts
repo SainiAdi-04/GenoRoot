@@ -95,14 +95,47 @@ export interface ExtractionProvider {
   ): Promise<ExtractionResult>;
 }
 
-// Gender cue detector (Hindi linguistic morphology + clinical content clues)
+// Gender cue detector (Hindi linguistic morphology + English self-ID + clinical clues)
 export function detectGenderCues(
   codemix: string = "",
   translate: string = ""
 ): GenderInferenceResult {
   const combinedLower = `${codemix} ${translate}`.toLowerCase();
 
-  // Strong content cues (clinical/biological)
+  // 1. Explicit English self-identification & terminology
+  if (
+    /\b(i\s*am|i'm)\s*(a\s*)?(male|man|guy|gentleman|boy)\b/.test(combinedLower) ||
+    /\b(male\s*pattern(\s*baldness)?|male\s*hair\s*loss|male\s*patient)\b/.test(combinedLower) ||
+    /\b(shaving\s*beard|my\s*beard|facial\s*beard|moustache|mustache)\b/.test(combinedLower) ||
+    /\b\d{1,2}\s*m\b/.test(combinedLower)
+  ) {
+    const match =
+      combinedLower.match(/\b(i\s*am|i'm)\s*(a\s*)?(male|man|guy|gentleman|boy)\b/)?.[0] ||
+      combinedLower.match(/\b(male\s*pattern(\s*baldness)?|male\s*patient)\b/)?.[0] ||
+      "self-identification as male";
+    return {
+      inferred_gender: "male",
+      confidence: 0.95,
+      cues: `'${match}'`,
+    };
+  }
+
+  if (
+    /\b(i\s*am|i'm)\s*(a\s*)?(female|woman|lady|girl)\b/.test(combinedLower) ||
+    /\b(female\s*pattern(\s*baldness)?|female\s*patient)\b/.test(combinedLower) ||
+    /\b\d{1,2}\s*f\b/.test(combinedLower)
+  ) {
+    const match =
+      combinedLower.match(/\b(i\s*am|i'm)\s*(a\s*)?(female|woman|lady|girl)\b/)?.[0] ||
+      "self-identification as female";
+    return {
+      inferred_gender: "female",
+      confidence: 0.95,
+      cues: `'${match}'`,
+    };
+  }
+
+  // 2. Strong content cues (clinical/biological)
   if (
     combinedLower.includes("pcos") ||
     combinedLower.includes("pcod") ||
@@ -110,12 +143,14 @@ export function detectGenderCues(
     combinedLower.includes("pregnancy") ||
     combinedLower.includes("delivery") ||
     combinedLower.includes("postpartum") ||
+    combinedLower.includes("baby") ||
+    combinedLower.includes("childbirth") ||
     combinedLower.includes("periods") ||
     combinedLower.includes("menopause")
   ) {
     const cueMatch = combinedLower.includes("pcos") || combinedLower.includes("pcod")
       ? "PCOS / hormonal health history"
-      : combinedLower.includes("delivery") || combinedLower.includes("postpartum")
+      : combinedLower.includes("delivery") || combinedLower.includes("postpartum") || combinedLower.includes("baby") || combinedLower.includes("childbirth")
       ? "recent childbirth / postpartum timeline"
       : combinedLower.includes("pregnant")
       ? "pregnancy"
@@ -128,8 +163,8 @@ export function detectGenderCues(
     };
   }
 
-  // Hindi grammatical markers
-  // Feminine verb/adjective endings: "ho gayi", "gayi thi", "karti hoon", "pareshan ho gayi"
+  // 3. Hindi grammatical markers & nouns
+  // Feminine verb/adjective endings: "ho gayi", "gayi thi", "karti hoon", "pareshan ho gayi", "aurat", "ladki"
   const femaleHindiPatterns = [
     /\bho\s+gayi\b/,
     /\bgayi\s+thi\b/,
@@ -139,36 +174,48 @@ export function detectGenderCues(
     /\brahi\s+thi\b/,
     /\bpareshan\s+ho\s+gayi\b/,
     /\bki\s+hoon\b/,
+    /\bpeeti\s+hoon\b/,
+    /\bladki\b/,
+    /\baurat\b/,
+    /\bpatni\b/,
+    /\bbehan\b/,
   ];
 
   for (const pat of femaleHindiPatterns) {
     if (pat.test(combinedLower)) {
       return {
         inferred_gender: "female",
-        confidence: 0.88,
+        confidence: 0.9,
         cues: "'" + (combinedLower.match(pat)?.[0] || "") + "'",
       };
     }
   }
 
-  // Masculine verb/adjective endings: "ka hoon", "ho gaya", "gaya tha", "karta hoon", "peeta hoon"
+  // Masculine verb/adjective endings: "ka hoon", "ho gaya", "gaya tha", "karta hoon", "peeta hoon", "ladka", "aadmi"
   const maleHindiPatterns = [
     /\bka\s+hoon\b/,
     /\bho\s+gaya\b/,
     /\bgaya\s+tha\b/,
     /\bkarta\s+hoon\b/,
+    /\bkarta\s+tha\b/,
     /\bpeeta\s+hoon\b/,
     /\braha\s+hoon\b/,
     /\braha\s+tha\b/,
     /\bdadhi\b/,
+    /\bdaadhi\b/,
     /\bbeard\b/,
+    /\bmooch\b/,
+    /\bladka\b/,
+    /\baadmi\b/,
+    /\bmard\b/,
+    /\bpati\b/,
   ];
 
   for (const pat of maleHindiPatterns) {
     if (pat.test(combinedLower)) {
       return {
         inferred_gender: "male",
-        confidence: 0.88,
+        confidence: 0.9,
         cues: "'" + (combinedLower.match(pat)?.[0] || "") + "'",
       };
     }
@@ -247,7 +294,7 @@ export function toExtractedFieldItems(result: ExtractionResult): ExtractedFieldI
     });
   }
 
-  if (f.menstrual_cycle && f.menstrual_cycle.value) {
+  if (f.menstrual_cycle && f.menstrual_cycle.value && f.menstrual_cycle.value !== "Not applicable") {
     items.push({
       key: "menstrual_cycle",
       label: "Menstrual cycle",
@@ -258,7 +305,7 @@ export function toExtractedFieldItems(result: ExtractionResult): ExtractedFieldI
     });
   }
 
-  if (f.pregnancy_related && f.pregnancy_related.value) {
+  if (f.pregnancy_related && f.pregnancy_related.value && f.pregnancy_related.value !== "Not applicable") {
     items.push({
       key: "pregnancy_related",
       label: "Maternal phase",
@@ -467,23 +514,60 @@ export class MockExtractionProvider implements ExtractionProvider {
       fields.age_hair_loss_began = { value: 34, confidence: 0.95 };
     }
 
-    if (text.includes("8 month") || text.includes("8 mahine") || text.includes("6-12")) {
+    if (text.includes("8 month") || text.includes("8 mahine") || text.includes("6-12") || text.includes("6 month") || text.includes("6 mahine")) {
       fields.duration = { value: "6-12 months", confidence: 0.9 };
     } else if (text.includes("4 month") || text.includes("4 mahine") || text.includes("< 6") || text.includes("less than 6")) {
       fields.duration = { value: "Less than 6 months", confidence: 0.9 };
-    } else if (text.includes("year") || text.includes("saal se")) {
+    } else if (/\b(over a year|several years|\d+\s*years?(?!\s*old)|ek saal se|saal se)\b/i.test(text)) {
       fields.duration = { value: "Over a year", confidence: 0.85 };
     }
 
     // Family history
-    if (text.includes("father") || text.includes("dad") || text.includes("papa")) {
+    if (
+      text.includes("father") ||
+      text.includes("dad") ||
+      text.includes("papa") ||
+      text.includes("pitaji") ||
+      text.includes("dada") ||
+      text.includes("डैड") ||
+      text.includes("फादर") ||
+      text.includes("पिता") ||
+      text.includes("पापा") ||
+      text.includes("दादा") ||
+      text.includes("दर्द")
+    ) {
       fields.family_history = {
         value: ["Father had hair loss"],
         confidence: 0.9,
       };
-    } else if (text.includes("mother") || text.includes("mom") || text.includes("mummy")) {
+    } else if (
+      text.includes("mother") ||
+      text.includes("mom") ||
+      text.includes("mummy") ||
+      text.includes("nana") ||
+      text.includes("nani") ||
+      text.includes("मॉम") ||
+      text.includes("माता") ||
+      text.includes("मम्मी") ||
+      text.includes("नाना") ||
+      text.includes("नानी")
+    ) {
       fields.family_history = {
         value: ["Mother had hair loss"],
+        confidence: 0.9,
+      };
+    } else if (
+      text.includes("brother") ||
+      text.includes("sister") ||
+      text.includes("bhai") ||
+      text.includes("bhaiya") ||
+      text.includes("didi") ||
+      text.includes("भाई") ||
+      text.includes("भैया") ||
+      text.includes("दीदी")
+    ) {
+      fields.family_history = {
+        value: ["Siblings with thinning or baldness"],
         confidence: 0.9,
       };
     }

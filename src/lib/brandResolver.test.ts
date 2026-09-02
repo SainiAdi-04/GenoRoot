@@ -1,9 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
-  BRAND_DICTIONARY,
   resolveBrandToProductCategory,
   resolveBrandMentions,
-  ProductCategory,
 } from "./brandResolver";
 
 describe("Brand Resolver Seam", () => {

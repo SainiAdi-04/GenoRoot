@@ -43,8 +43,8 @@ describe("transcribeService seam", () => {
       expect(file.type).toBe("audio/webm");
       expect(file.type).not.toContain(";codecs=");
 
-      expect(model).toBe("saaras:v3");
-      expect(formData?.get("language_code")).toBe("unknown");
+      expect(model === "saaras:v4" || model === "saaras:v3").toBe(true);
+      expect(formData?.get("language_code")).toBe("hi-IN");
       expect(init?.headers).toEqual(
         expect.objectContaining({
           "api-subscription-key": "test-sarvam-key",

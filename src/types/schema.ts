@@ -36,6 +36,7 @@ export interface QuestionConfig {
 export interface IntakeFormData {
   // Section A - Personal & Family Hair Loss History
   age_hair_loss_began?: number | null;
+  biological_sex?: "male" | "female" | "prefer_not_to_say" | null;
   duration?: "Less than 6 months" | "6-12 months" | "Over a year" | string | null;
   family_history?: string[] | null;
   pattern?: string[] | null;
