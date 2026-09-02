@@ -128,7 +128,7 @@ export function getCurrentQuestion(
         sectionTitle: "Current Hair Care & Treatments",
         type: "single",
         prompt: `For ${matchingProduct}, roughly how long did you use it?`,
-        helperText: "Timeline helps determine if sufficient therapeutic duration was achieved.",
+        helperText: "Why we ask: Helps your doctor check whether you used it long enough to see results.",
         options: [
           { label: "Less than 3 months (< 3mo)", value: "<3mo" },
           { label: "3 to 6 months (3-6mo)", value: "3-6mo" },
@@ -211,7 +211,7 @@ export function getCurrentQuestion(
         sectionId: "D",
         sectionTitle: "Current Hair Care & Treatments",
         type: "yesno",
-        prompt: `Did ${matchingProcedure} produce noticeable clinical improvement?`,
+        prompt: `Did ${matchingProcedure} produce noticeable improvement in your hair?`,
         options: [
           { label: "No", value: "false" },
           { label: "Yes", value: "true" },
@@ -264,6 +264,7 @@ export function formatUserAnswer(
 // Sequential flow question order
 export const FLOW_QUESTION_ORDER = [
   "q1",
+  "q_biological_sex",
   "q2",
   "q3",
   "q4",
@@ -292,6 +293,12 @@ export function isQuestionAnswered(questionId: string, state: EngineState): bool
   switch (questionId) {
     case "q1":
       return fd.age_hair_loss_began != null;
+    case "q_biological_sex":
+      return (
+        state.inferredSex != null ||
+        state.answeredQuestionIds?.includes("q_biological_sex") ||
+        (fd.menstrual_cycle != null && fd.pregnancy_related != null)
+      );
     case "q2":
       return fd.duration != null;
     case "q3":
@@ -301,6 +308,7 @@ export function isQuestionAnswered(questionId: string, state: EngineState): bool
     case "q5":
       return Array.isArray(fd.diagnosed_conditions) && fd.diagnosed_conditions.length > 0;
     case "q6_q7_hormonal":
+      if (state.inferredSex === "male") return true;
       return (
         fd.menstrual_cycle != null &&
         fd.pregnancy_related != null &&
@@ -349,10 +357,16 @@ interface NextStepResult {
 
 export function getRawNextStep(
   currentStepId: string,
-  updatedFormData: IntakeFormData
+  updatedFormData: IntakeFormData,
+  inferredSex?: "male" | "female" | null
 ): NextStepResult {
   switch (currentStepId) {
     case "q1":
+      if (inferredSex != null) {
+        return { nextStepId: "q2" };
+      }
+      return { nextStepId: "q_biological_sex" };
+    case "q_biological_sex":
       return { nextStepId: "q2" };
     case "q2":
       return { nextStepId: "q3" };
@@ -365,6 +379,13 @@ export function getRawNextStep(
           "✓ Personal history recorded. Now let's look at health and hormonal factors that directly influence hair.",
       };
     case "q5":
+      if (inferredSex === "male") {
+        return {
+          nextStepId: "q8_q9_skin",
+          transitionMessage:
+            "✓ Medical background recorded. Next, two quick checks on your skin and scalp oiliness:",
+        };
+      }
       return { nextStepId: "q6_q7_hormonal" };
     case "q6_q7_hormonal":
       return { nextStepId: "q8_q9_skin" };
@@ -532,12 +553,71 @@ export function getRawNextStep(
   return { nextStepId: null, isCompleted: true };
 }
 
+export function getMicroAffirmation(
+  prevStepId: string,
+  answerValue: unknown
+): string | null {
+  switch (prevStepId) {
+    case "q1":
+      return "Thank you. Establishing onset age gives Dr. Sharma crucial baseline context for your progression curve.";
+    case "q_biological_sex": {
+      const val = String(answerValue);
+      if (val === "male") {
+        return "Understood. Tailoring your questions for male pattern hair loss.";
+      }
+      if (val === "female") {
+        return "Understood. Including questions related to your cycle and hormone health.";
+      }
+      return "Understood. Preparing a helpful profile for your doctor.";
+    }
+    case "q2": {
+      const val = String(answerValue);
+      if (val.includes("Less than 6 months")) {
+        return "Noted. Hair fall under 6 months often points to temporary triggers that can improve.";
+      }
+      if (val.includes("6")) {
+        return "Understood. 6–12 months is an important timeframe for your doctor to evaluate.";
+      }
+      return "Understood. Hair thinning over a year gives your doctor key clues about long-term patterns.";
+    }
+    case "q3":
+      return "Family history recorded. Genetics play an important role in hair density.";
+    case "q4":
+      return "Scalp pattern noted for your doctor's review.";
+    case "q5":
+      return "Health conditions logged. Overall health directly affects how nutrients reach your hair roots.";
+    case "q6_q7_hormonal":
+      return "Hormonal details recorded.";
+    case "q8_q9_skin":
+      return "Skin and scalp checks logged.";
+    case "q11_smoking":
+      return "Lifestyle details recorded. Good blood flow to your scalp is vital for healthy hair roots.";
+    case "q11_hard_water":
+      return "Water source recorded for your scalp review.";
+    case "q11_hair_wash_frequency":
+      return "Washing frequency noted.";
+    case "q10_past_6_months":
+      return "Stress and health events logged. High stress or illness can often explain sudden shedding spikes.";
+    case "q12_products_select":
+      return "Treatment history saved. This helps your doctor avoid suggesting products that didn't work for you.";
+    case "q13_procedures_gate":
+      return "Procedure history logged.";
+    case "q14_side_effects_gate":
+      return "Past reactions and side effects recorded.";
+    case "q15_sample_type":
+      return "Sample preference saved.";
+    default:
+      return null;
+  }
+}
+
 export function determineNextStep(
   currentStepId: string,
   updatedFormData: IntakeFormData,
-  answeredQuestionIds: string[] = []
+  answeredQuestionIds: string[] = [],
+  inferredSex?: "male" | "female" | null
 ): NextStepResult {
-  let stepResult = getRawNextStep(currentStepId, updatedFormData);
+  let stepResult = getRawNextStep(currentStepId, updatedFormData, inferredSex);
   let gatheredTransition = stepResult.transitionMessage;
 
   while (
@@ -545,7 +625,7 @@ export function determineNextStep(
     answeredQuestionIds.includes(stepResult.nextStepId)
   ) {
     const candidateId = stepResult.nextStepId;
-    stepResult = getRawNextStep(candidateId, updatedFormData);
+    stepResult = getRawNextStep(candidateId, updatedFormData, inferredSex);
     if (stepResult.transitionMessage) {
       gatheredTransition = stepResult.transitionMessage;
     }
@@ -570,9 +650,26 @@ export function answerCurrentQuestion(
   const updatedFormData: IntakeFormData = { ...state.formData };
   const stepId = currentQ.id;
 
+  let updatedInferredSex = state.inferredSex;
+  const updatedAnsweredIds = state.answeredQuestionIds.includes(currentQ.id)
+    ? [...state.answeredQuestionIds]
+    : [...state.answeredQuestionIds, currentQ.id];
+
   // Apply value to formData based on step
   if (stepId === "q1") {
     updatedFormData.age_hair_loss_began = Number(answerValue);
+  } else if (stepId === "q_biological_sex") {
+    const val = String(answerValue);
+    if (val === "male") {
+      updatedInferredSex = "male";
+      updatedFormData.menstrual_cycle = "Not applicable";
+      updatedFormData.pregnancy_related = "Not applicable";
+      if (!updatedAnsweredIds.includes("q6_q7_hormonal")) {
+        updatedAnsweredIds.push("q6_q7_hormonal");
+      }
+    } else if (val === "female") {
+      updatedInferredSex = "female";
+    }
   } else if (stepId === "q2") {
     updatedFormData.duration = String(answerValue);
   } else if (stepId === "q3") {
@@ -812,10 +909,6 @@ export function answerCurrentQuestion(
       questionId: currentQ.id,
     };
 
-  const updatedAnsweredIds = state.answeredQuestionIds.includes(currentQ.id)
-    ? state.answeredQuestionIds
-    : [...state.answeredQuestionIds, currentQ.id];
-
   const newMessages = [...state.messages, userMsg];
 
   // If in editing mode and not a gate opening sub-steps, return to review directly
@@ -872,7 +965,7 @@ export function answerCurrentQuestion(
   }
 
   // Determine next step
-  const nextResult = determineNextStep(stepId, updatedFormData, updatedAnsweredIds);
+  const nextResult = determineNextStep(stepId, updatedFormData, updatedAnsweredIds, updatedInferredSex);
 
   if (nextResult.transitionMessage) {
     newMessages.push({
@@ -887,6 +980,7 @@ export function answerCurrentQuestion(
   if (nextResult.isCompleted || !nextResult.nextStepId) {
     return {
       ...state,
+      inferredSex: updatedInferredSex,
       phase: "review",
       currentStepId: null,
       answeredQuestionIds: updatedAnsweredIds,
@@ -897,15 +991,18 @@ export function answerCurrentQuestion(
 
   const nextStepId = nextResult.nextStepId;
   const nextQ = getCurrentQuestion(
-    { ...state, phase: "in_progress", currentStepId: nextStepId, formData: updatedFormData },
+    { ...state, phase: "in_progress", currentStepId: nextStepId, formData: updatedFormData, inferredSex: updatedInferredSex },
     questions
   );
 
   if (nextQ) {
+    const affirmation = getMicroAffirmation(stepId, answerValue);
+    const content = affirmation ? `${affirmation}\n\n${nextQ.prompt}` : nextQ.prompt;
+
     newMessages.push({
       id: `msg_q_${nextQ.id}_${Date.now()}`,
       sender: "bot",
-      content: nextQ.prompt,
+      content,
       timestamp: Date.now() + 2,
       questionId: nextQ.id,
     });
@@ -913,6 +1010,7 @@ export function answerCurrentQuestion(
 
   return {
     ...state,
+    inferredSex: updatedInferredSex,
     phase: "in_progress",
     currentStepId: nextStepId,
     answeredQuestionIds: updatedAnsweredIds,
@@ -1171,6 +1269,9 @@ export function confirmCascade(
       case "age_hair_loss_began":
         updatedFormData.age_hair_loss_began = field.value as number;
         break;
+      case "biological_sex":
+        updatedFormData.biological_sex = field.value as "male" | "female" | "prefer_not_to_say";
+        break;
       case "duration":
         updatedFormData.duration = field.value as string;
         break;
@@ -1314,6 +1415,9 @@ export function confirmGenderInference(
     if (!updatedAnsweredIds.includes("q6_q7_hormonal")) {
       updatedAnsweredIds.push("q6_q7_hormonal");
     }
+    if (!updatedAnsweredIds.includes("q_biological_sex")) {
+      updatedAnsweredIds.push("q_biological_sex");
+    }
 
     newMessages.push({
       id: `msg_gender_user_${Date.now()}`,
@@ -1330,6 +1434,10 @@ export function confirmGenderInference(
       messages: newMessages,
     });
   } else if (confirmed && genderInf?.inferred_gender === "female") {
+    if (!updatedAnsweredIds.includes("q_biological_sex")) {
+      updatedAnsweredIds.push("q_biological_sex");
+    }
+
     newMessages.push({
       id: `msg_gender_user_${Date.now()}`,
       sender: "user",
@@ -1345,6 +1453,10 @@ export function confirmGenderInference(
       messages: newMessages,
     });
   } else {
+    if (!updatedAnsweredIds.includes("q_biological_sex")) {
+      updatedAnsweredIds.push("q_biological_sex");
+    }
+
     newMessages.push({
       id: `msg_gender_user_${Date.now()}`,
       sender: "user",
@@ -1364,10 +1476,33 @@ export function confirmGenderInference(
 
 export function advanceAfterCascade(state: EngineState): EngineState {
   const newMessages = [...state.messages];
+  const updatedFormData = { ...state.formData };
+  const updatedAnsweredIds = [...state.answeredQuestionIds];
+
+  if (state.inferredSex === "male") {
+    updatedFormData.menstrual_cycle = "Not applicable";
+    updatedFormData.pregnancy_related = "Not applicable";
+    if (!updatedAnsweredIds.includes("q6_q7_hormonal")) {
+      updatedAnsweredIds.push("q6_q7_hormonal");
+    }
+    if (!updatedAnsweredIds.includes("q_biological_sex")) {
+      updatedAnsweredIds.push("q_biological_sex");
+    }
+  } else if (state.inferredSex === "female") {
+    if (!updatedAnsweredIds.includes("q_biological_sex")) {
+      updatedAnsweredIds.push("q_biological_sex");
+    }
+  }
+
+  const workingState: EngineState = {
+    ...state,
+    formData: updatedFormData,
+    answeredQuestionIds: updatedAnsweredIds,
+  };
 
   // Find first unanswered step in question order
   const nextStepId = FLOW_QUESTION_ORDER.find(
-    (stepId) => !isQuestionAnswered(stepId, state)
+    (stepId) => !isQuestionAnswered(stepId, workingState)
   );
 
   if (!nextStepId) {
@@ -1381,7 +1516,7 @@ export function advanceAfterCascade(state: EngineState): EngineState {
     });
 
     return {
-      ...state,
+      ...workingState,
       phase: "review",
       currentStepId: null,
       messages: newMessages,
@@ -1397,7 +1532,7 @@ export function advanceAfterCascade(state: EngineState): EngineState {
   });
 
   const nextQ = getCurrentQuestion(
-    { ...state, phase: "in_progress", currentStepId: nextStepId },
+    { ...workingState, phase: "in_progress", currentStepId: nextStepId },
     ALL_QUESTIONS
   );
 
@@ -1414,7 +1549,7 @@ export function advanceAfterCascade(state: EngineState): EngineState {
   const stepIndex = (FLOW_QUESTION_ORDER as readonly string[]).indexOf(nextStepId);
 
   return {
-    ...state,
+    ...workingState,
     phase: "in_progress",
     currentStepId: nextStepId,
     currentQuestionIndex: Math.max(0, stepIndex),

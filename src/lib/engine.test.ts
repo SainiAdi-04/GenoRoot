@@ -43,6 +43,7 @@ describe("Chat Flow Engine - All 16 Questions", () => {
     let state = createInitialEngineState();
     state = startStepByStep(state);
     state = answerCurrentQuestion(state, 24); // Q1
+    state = answerCurrentQuestion(state, "female"); // q_biological_sex
     state = answerCurrentQuestion(state, "6-12 months"); // Q2
     state = answerCurrentQuestion(state, ["Father had hair loss"]); // Q3
     state = answerCurrentQuestion(state, ["Thinning at crown", "Receding hairline"]); // Q4
@@ -67,6 +68,7 @@ describe("Chat Flow Engine - All 16 Questions", () => {
     state = startStepByStep(state);
     // Section A
     state = answerCurrentQuestion(state, 28);
+    state = answerCurrentQuestion(state, "female"); // q_biological_sex
     state = answerCurrentQuestion(state, "Over a year");
     state = answerCurrentQuestion(state, ["Mother had hair loss"]);
     state = answerCurrentQuestion(state, ["Widening part line"]);
@@ -92,6 +94,23 @@ describe("Chat Flow Engine - All 16 Questions", () => {
 
     // Advances to Section C smoking
     expect(state.currentStepId).toBe("q11_smoking");
+  });
+
+  it("omits Q6/Q7 hormonal questions completely when biological sex is male", () => {
+    let state = createInitialEngineState();
+    state = startStepByStep(state);
+    state = answerCurrentQuestion(state, 32); // Q1
+    state = answerCurrentQuestion(state, "male"); // q_biological_sex
+    state = answerCurrentQuestion(state, "Over a year"); // Q2
+    state = answerCurrentQuestion(state, ["Father had hair loss"]); // Q3
+    state = answerCurrentQuestion(state, ["Thinning at crown"]); // Q4
+    state = answerCurrentQuestion(state, ["Diabetes"]); // Q5
+
+    // Male path routes directly to q8_q9_skin, bypassing q6_q7_hormonal!
+    expect(state.currentStepId).toBe("q8_q9_skin");
+    expect(state.formData.menstrual_cycle).toBe("Not applicable");
+    expect(state.formData.pregnancy_related).toBe("Not applicable");
+    expect(state.answeredQuestionIds).toContain("q6_q7_hormonal");
   });
 
   it("handles unified hormonal option: Postpartum <1 year correctly", () => {
@@ -239,13 +258,14 @@ describe("Chat Flow Engine - All 16 Questions", () => {
 
     // Q1-Q4
     state = answerCurrentQuestion(state, 30);
+    state = answerCurrentQuestion(state, "male"); // q_biological_sex
     state = answerCurrentQuestion(state, "Less than 6 months");
     state = answerCurrentQuestion(state, ["No known family history"]);
     state = answerCurrentQuestion(state, ["Diffuse thinning"]);
 
-    // Q5-Q9
+    // Q5-Q9 (Male skips Q6/Q7 automatically to Q8/Q9)
     state = answerCurrentQuestion(state, ["None"]);
-    state = answerCurrentQuestion(state, "Not applicable");
+    expect(state.currentStepId).toBe("q8_q9_skin");
     state = answerCurrentQuestion(state, { adult_acne_oily_skin: false, excess_body_facial_hair: false });
 
     // Q11 Habits (No smoking, No alcohol, Normal water, Alternate Days, No heating, No salon)
@@ -326,8 +346,8 @@ describe("Chat Flow Engine - All 16 Questions", () => {
 
       // Age filled
       expect(state.formData.age_hair_loss_began).toBe(26);
-      // Advances to Q2
-      expect(state.currentStepId).toBe("q2");
+      // Advances to q_biological_sex
+      expect(state.currentStepId).toBe("q_biological_sex");
       // Contains user voice message
       const voiceMsg = state.messages.find((m) => m.sender === "user" && m.voice?.durationSeconds === 3);
       expect(voiceMsg).toBeDefined();
@@ -405,7 +425,7 @@ describe("Chat Flow Engine - All 16 Questions", () => {
       expect(state.phase).toBe("in_progress");
       expect(state.currentStepId).toBe("q1");
       const lastMsg = state.messages[state.messages.length - 1];
-      expect(lastMsg.content).toContain("Roughly how old were you");
+      expect(lastMsg.content).toContain("hair thinning or hair fall");
     });
 
     it("auto-fills extracted fields and sets state to cascade phase", () => {
@@ -605,6 +625,7 @@ describe("Chat Flow Engine - All 16 Questions", () => {
 
       // Current step is Q1 -> answer Q1
       state = answerCurrentQuestion(state, 25);
+      state = answerCurrentQuestion(state, "female"); // q_biological_sex
       expect(state.currentStepId).toBe("q2");
 
       // Answer Q2 -> since Q3 and Q4 are already answered, engine should skip to Q5!

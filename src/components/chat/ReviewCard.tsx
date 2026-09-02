@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { IntakeFormData } from "@/types/schema";
 import { CheckCheck, Edit3, ShieldCheck } from "lucide-react";
 import { DoctorTriageBriefing } from "@/lib/triageService";
@@ -25,33 +25,51 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   const [isLoadingTriage, setIsLoadingTriage] = useState<boolean>(!initialTriage);
   const [triageError, setTriageError] = useState<string | null>(null);
 
-  const fetchTriage = useCallback(async () => {
+  const [retryTrigger, setRetryTrigger] = useState<number>(0);
+
+  const handleRetryTriage = () => {
     setIsLoadingTriage(true);
     setTriageError(null);
-    try {
-      const res = await fetch("/api/triage", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ formData }),
-      });
-      const data = await res.json();
-      if (data.success && data.triage) {
-        setTriage(data.triage);
-      } else {
-        setTriageError(data.error || "Failed to generate clinical briefing");
-      }
-    } catch (err) {
-      setTriageError(err instanceof Error ? err.message : "Network error");
-    } finally {
-      setIsLoadingTriage(false);
-    }
-  }, [formData]);
+    setRetryTrigger((prev) => prev + 1);
+  };
 
   useEffect(() => {
-    if (!initialTriage) {
-      fetchTriage();
+    if (initialTriage && retryTrigger === 0) return;
+    let isCancelled = false;
+
+    async function loadTriage() {
+      setIsLoadingTriage(true);
+      try {
+        const res = await fetch("/api/triage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ formData }),
+        });
+        const data = await res.json();
+        if (!isCancelled) {
+          if (data.success && data.triage) {
+            setTriage(data.triage);
+            setTriageError(null);
+          } else {
+            setTriageError(data.error || "Failed to generate clinical briefing");
+          }
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          setTriageError(err instanceof Error ? err.message : "Network error");
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingTriage(false);
+        }
+      }
     }
-  }, [fetchTriage, initialTriage]);
+
+    loadTriage();
+    return () => {
+      isCancelled = true;
+    };
+  }, [formData, initialTriage, retryTrigger]);
 
 
   const sections = [
@@ -108,7 +126,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
         },
         {
           id: "q8_q9_skin",
-          label: "Skin & body androgen markers",
+          label: "Skin & body checks",
           value: `Acne/oily skin: ${formData.adult_acne_oily_skin ? "Yes" : "No"} • Excess facial/body hair: ${formData.excess_body_facial_hair ? "Yes" : "No"}`,
         },
       ],
@@ -249,7 +267,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
           triage={triage}
           isLoading={isLoadingTriage}
           error={triageError}
-          onRetry={fetchTriage}
+          onRetry={handleRetryTriage}
         />
 
         {sections.map((sec) => (
