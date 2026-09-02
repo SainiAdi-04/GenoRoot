@@ -24,12 +24,12 @@ export const ALL_QUESTIONS: QuestionConfig[] = [
     sectionId: "A",
     sectionTitle: "Personal & Family Hair Loss History",
     type: "single",
-    prompt: "To show you the right hormonal and health questions, what is your biological sex?",
+    prompt: "To personalize your hormonal and health check-in, what is your biological sex?",
     helperText: "Why we ask: Hair loss patterns and hormone triggers are different for men and women.",
     options: [
-      { label: "Male", value: "male", description: "Standard male health questions" },
-      { label: "Female", value: "female", description: "Includes hormonal & cycle questions" },
-      { label: "Prefer not to say", value: "prefer_not_to_say", description: "Standard questions without gender tailoring" },
+      { label: "Male", value: "male", description: "Standard male health profile" },
+      { label: "Female", value: "female", description: "Includes hormonal & cycle health" },
+      { label: "Prefer not to say", value: "prefer_not_to_say", description: "Standard clinical assessment" },
     ],
   },
   {
@@ -109,7 +109,7 @@ export const ALL_QUESTIONS: QuestionConfig[] = [
     sectionTitle: "Hormonal & Health Influences",
     type: "hormonal",
     prompt: "Hormone shifts—like irregular periods, pregnancy, or menopause—can frequently trigger hair shedding. Do any of these apply to you?",
-    helperText: "Why we ask: Hormones help keep hair in its healthy growth phase. Tapping 'Not applicable' skips all cycle questions.",
+    helperText: "Why we ask: Hormones help keep hair in its healthy growth phase. Tapping 'Not applicable' skips this part.",
     femaleOnly: true,
     options: [
       { label: "Regular periods", value: "Regular periods", description: "Consistent, predictable cycle" },
@@ -117,7 +117,7 @@ export const ALL_QUESTIONS: QuestionConfig[] = [
       { label: "Currently pregnant", value: "Currently pregnant", description: "Currently expecting" },
       { label: "Had a baby in the past year", value: "Postpartum <1 year", description: "Hair shedding after childbirth" },
       { label: "Menopause / Peri-menopause", value: "Menopausal", description: "Menopausal hormone shifts" },
-      { label: "Not applicable to my profile", value: "Not applicable", description: "Skip reproductive questions", isExclusive: true },
+      { label: "Not applicable to my profile", value: "Not applicable", description: "Skip reproductive checks", isExclusive: true },
     ],
   },
   {

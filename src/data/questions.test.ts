@@ -89,17 +89,28 @@ describe("Plain-Language Clinical Framing for ALL_QUESTIONS & Dynamic Engine Cop
       "q15_sample_type",
     ];
 
-    const roboticPhrases = ["recorded", "logged"];
+    const roboticPhrases = ["recorded", "logged", "question"];
 
     for (const key of questionKeys) {
-      const affirmation = getMicroAffirmation(key, "dummy answer")?.toLowerCase() ?? "";
-      for (const phrase of forbiddenPhrases) {
-        expect(affirmation).not.toContain(phrase.toLowerCase());
-      }
-      for (const word of roboticPhrases) {
-        expect(affirmation).not.toContain(word);
+      const affDefault = getMicroAffirmation(key, "dummy answer")?.toLowerCase() ?? "";
+      const affMale = getMicroAffirmation(key, "male")?.toLowerCase() ?? "";
+      const affFemale = getMicroAffirmation(key, "female")?.toLowerCase() ?? "";
+
+      for (const affirmation of [affDefault, affMale, affFemale]) {
+        for (const phrase of forbiddenPhrases) {
+          expect(affirmation).not.toContain(phrase.toLowerCase());
+        }
+        for (const word of roboticPhrases) {
+          expect(affirmation).not.toContain(word);
+        }
       }
     }
+  });
+
+  it("does not use the word 'question' in biological sex prompts or options", () => {
+    const sexQ = ALL_QUESTIONS.find((q) => q.id === "q_biological_sex")!;
+    const text = `${sexQ.prompt} ${sexQ.helperText ?? ""} ${sexQ.options?.map((o) => `${o.label} ${o.description ?? ""}`).join(" ")}`.toLowerCase();
+    expect(text).not.toContain("question");
   });
 
   it("contains empathetic 'Why we ask:' helper text for questions with helpers", () => {

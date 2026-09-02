@@ -245,7 +245,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
               Clinical Intake Summary
             </span>
             <span className="text-[10px] font-mono text-[rgba(243,240,223,0.5)]">
-              16/16 Questions Answered
+              16/16 Completed
             </span>
           </div>
           <h3 className="text-xl font-serif text-[#f3f0df]">

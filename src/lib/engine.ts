@@ -563,10 +563,10 @@ export function getMicroAffirmation(
     case "q_biological_sex": {
       const val = String(answerValue);
       if (val === "male") {
-        return "Understood. Tailoring your questions for male pattern hair loss.";
+        return "Understood. Focusing on male pattern hair loss.";
       }
       if (val === "female") {
-        return "Understood. Including questions related to your cycle and hormone health.";
+        return "Understood. Including details on your cycle and hormone health.";
       }
       return "Understood. Preparing a helpful profile for your doctor.";
     }
@@ -1236,7 +1236,7 @@ export function applyVoiceCascade(
   newMessages.push({
     id: `msg_bot_cascade_announcement_${Date.now()}`,
     sender: "bot",
-    content: `🎉 ${fields.length} questions auto-filled from your voice note! Confirm all in one tap or tap any item to edit:`,
+    content: `🎉 ${fields.length} details auto-filled from your voice note! Confirm all in one tap or tap any item to edit:`,
     timestamp: Date.now() + 1,
   });
 
@@ -1374,7 +1374,7 @@ export function confirmCascade(
     newMessages.push({
       id: `msg_gender_prompt_${Date.now() + 1}`,
       sender: "bot",
-      content: `I noticed you mentioned ${cueText} — I'll tailor a few health questions accordingly. Sound right?`,
+      content: `I noticed you mentioned ${cueText} — I'll personalize your upcoming health checks accordingly. Sound right?`,
       timestamp: Date.now() + 1,
     });
 
@@ -1460,7 +1460,7 @@ export function confirmGenderInference(
     newMessages.push({
       id: `msg_gender_user_${Date.now()}`,
       sender: "user",
-      content: "✗ No, show all questions",
+      content: "✗ No, keep standard check-in",
       timestamp: Date.now(),
     });
 
@@ -1510,7 +1510,7 @@ export function advanceAfterCascade(state: EngineState): EngineState {
       id: `msg_all_filled_${Date.now()}`,
       sender: "bot",
       content:
-        "✓ All questions filled from your voice note! Review your summary below before submitting to Dr. Sharma.",
+        "✓ Everything filled from your voice note! Review your summary below before your consultation.",
       timestamp: Date.now(),
       isTransition: true,
     });

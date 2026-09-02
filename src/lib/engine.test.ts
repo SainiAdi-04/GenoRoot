@@ -481,7 +481,7 @@ describe("Chat Flow Engine - All 16 Questions", () => {
 
       expect(state.phase).toBe("cascade");
       expect(state.pendingCascade?.fields.length).toBe(4);
-      expect(state.messages.some((m) => m.content.includes("4 questions auto-filled"))).toBe(true);
+      expect(state.messages.some((m) => m.content.includes("4 details auto-filled"))).toBe(true);
     });
 
     it("confirming cascade commits fields to formData, marks them answered, and prompts gender confirmation if confident", () => {

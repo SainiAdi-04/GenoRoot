@@ -65,7 +65,7 @@ export const CascadeCard: React.FC<CascadeCardProps> = ({
         <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-[rgba(78,135,102,0.2)] border border-[rgba(78,135,102,0.35)] rounded-sm">
           <Sparkles className="w-3.5 h-3.5 text-[#62a57f]" />
           <span className="text-[11px] font-mono tracking-wider text-[#62a57f] uppercase">
-            Voice Cascade • Sarvam AI
+            Voice Cascade • Auto-Detected
           </span>
         </div>
         <span className="text-[11px] font-mono text-[rgba(243,240,223,0.5)]">
@@ -74,7 +74,7 @@ export const CascadeCard: React.FC<CascadeCardProps> = ({
       </div>
 
       <h3 className="text-xl sm:text-2xl font-serif text-[#f3f0df] tracking-tight mb-2">
-        🎉 {fields.length} questions auto-filled from your voice note!
+        🎉 {fields.length} details auto-filled from your voice note!
       </h3>
       <p className="text-xs sm:text-sm text-[rgba(243,240,223,0.7)] mb-5">
         Extracted directly from your Hinglish voice note. Tap any chip to edit, or confirm all in one tap:
@@ -110,7 +110,7 @@ export const CascadeCard: React.FC<CascadeCardProps> = ({
           onClick={onConfirmAll}
           className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-[#4e8766] hover:bg-[#5ca37c] active:bg-[#3d7054] text-[#f3f0df] font-medium text-sm rounded-sm transition-all shadow-md focus:outline-none focus:ring-2 focus:ring-[#62a57f] focus:ring-offset-2 focus:ring-offset-[#111814]"
         >
-          <span>Confirm All ({fields.length} questions)</span>
+          <span>Confirm All ({fields.length} items)</span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>
