@@ -5,7 +5,7 @@
 ---
 
 
-## 🎯 The Problem & Design Philosophy
+##  The Problem & Design Philosophy
 
 ### The Clinic Reality
 Patients at hair and scalp clinics today fill a dense 16-question paper intake form before consultations. The result:
@@ -21,7 +21,7 @@ The last decade of healthcare software was *forms and dashboards*: the patient c
 
 ---
 
-## ⚖️ Core Decisions (Evaluated in Order)
+##  Core Decisions (Evaluated in Order)
 
 ---
 
@@ -148,7 +148,7 @@ The last decade of healthcare software was *forms and dashboards*: the patient c
 
 ---
 
-## 🧪 How We Tested the Fill
+##  How We Tested the Fill
 
 Verification was built as a first-class citizen using native `bun test`. We tested **external system behavior and clinical seams**, not internal component state.
 
@@ -184,7 +184,7 @@ bun test
 
 ---
 
-## 🔮 What We'd Improve With One More Week
+##  What We'd Improve With One More Week
 
 1. **Improve voice detection (currently failing in a lot of cases):**
    - Address ASR recognition failures under realistic clinic conditions (background noise, fast colloquial speech, overlapping chatter, and varying microphone proximity).
@@ -204,7 +204,7 @@ bun test
 
 ---
 
-## 🚀 Quick Start & Local Execution
+##  Quick Start & Local Execution
 
 ### Prerequisites
 - [Bun](https://bun.sh/) 1.4+ (recommended) or Node.js 20+
@@ -242,7 +242,7 @@ bun start
 
 ---
 
-## 📦 Machine-Readable Schema Conformance
+##  Machine-Readable Schema Conformance
 
 The final output generated at completion strictly adheres to the official specification at [haikustudio.ai/hiring/intake-schema.json](https://haikustudio.ai/hiring/intake-schema.json). 
 
