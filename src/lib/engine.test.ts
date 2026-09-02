@@ -424,6 +424,8 @@ describe("Chat Flow Engine - All 16 Questions", () => {
 
       expect(state.phase).toBe("in_progress");
       expect(state.currentStepId).toBe("q1");
+      // No user voice bubble (with audio player / transcribe) should be rendered when voice was not understood
+      expect(state.messages.some((m) => m.sender === "user" && m.voice)).toBe(false);
       const lastMsg = state.messages[state.messages.length - 1];
       expect(lastMsg.content).toContain("hair thinning or hair fall");
     });

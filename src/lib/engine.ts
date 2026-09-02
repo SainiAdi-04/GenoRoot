@@ -1185,30 +1185,12 @@ export function applyVoiceCascade(
   const { fields, genderInference, voice } = payload;
   const newMessages = [...state.messages];
 
-  if (voice && (voice.codemixTranscript || voice.translateTranscript)) {
-    newMessages.push({
-      id: `msg_user_voice_${Date.now()}`,
-      sender: "user",
-      content: voice.codemixTranscript || voice.translateTranscript || "Voice note recorded",
-      timestamp: Date.now(),
-      voice: {
-        audioUrl: voice.audioUrl,
-        durationSeconds: voice.durationSeconds,
-        codemixTranscript: voice.codemixTranscript,
-        translateTranscript: voice.translateTranscript,
-        isFallback: voice.isFallback,
-      },
-    });
-  }
-
-  // Edge Case: Empty or 0 fields extracted
+  // Edge Case: Empty or 0 fields extracted (voice not understood / no fields matched)
   if (!fields || fields.length === 0) {
     newMessages.push({
       id: `msg_bot_no_fields_${Date.now()}`,
       sender: "bot",
-      content: voice?.codemixTranscript
-        ? `I heard: "${voice.codemixTranscript}". Let's walk through your intake step by step to ensure every detail is accurately captured.`
-        : "Let's walk through your intake step by step.",
+      content: "Let's walk through your check-in step by step.",
       timestamp: Date.now() + 1,
     });
 
@@ -1230,6 +1212,23 @@ export function applyVoiceCascade(
       currentQuestionIndex: 0,
       messages: newMessages,
     };
+  }
+
+  // Active cascade: voice was understood and extracted clinical fields
+  if (voice && (voice.codemixTranscript || voice.translateTranscript)) {
+    newMessages.push({
+      id: `msg_user_voice_${Date.now()}`,
+      sender: "user",
+      content: voice.codemixTranscript || voice.translateTranscript || "Voice note recorded",
+      timestamp: Date.now(),
+      voice: {
+        audioUrl: voice.audioUrl,
+        durationSeconds: voice.durationSeconds,
+        codemixTranscript: voice.codemixTranscript,
+        translateTranscript: voice.translateTranscript,
+        isFallback: voice.isFallback,
+      },
+    });
   }
 
   // Active cascade with auto-filled fields
